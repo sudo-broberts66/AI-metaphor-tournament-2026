@@ -361,6 +361,93 @@ button.slot:focus-visible {
 .page-footer p { margin: 4px 0; }
 
 /* ============================================================
+   Path highlight (hover / focus): neon tube switching on
+   ============================================================ */
+.wire { transition: opacity .2s ease; }
+.is-tracing .wire { opacity: .22; }
+.is-tracing .wire.is-lit {
+  opacity: 1; stroke: #fff6b8; stroke-width: 3.5;
+  filter: drop-shadow(0 0 4px rgba(255,233,74,1)) drop-shadow(0 0 10px rgba(255,233,74,.7));
+  animation: tube-on .34s steps(1) both; animation-delay: calc(var(--step, 0) * 85ms);
+}
+.is-tracing .slot { transition: opacity .2s ease; }
+.is-tracing .slot:not(.is-lit) { opacity: .8; }
+.is-tracing .slot.is-lit {
+  box-shadow: inset 0 0 0 2px var(--yellow), 0 0 18px rgba(255,233,74,.55);
+  animation: tube-on .34s steps(1) both; animation-delay: calc(var(--step, 0) * 85ms);
+}
+.is-tracing .champion-plate.is-lit { animation: tube-on .34s steps(1) both; animation-delay: calc(var(--step, 0) * 85ms); box-shadow: 0 0 30px rgba(255,233,74,.7); }
+@keyframes tube-on {
+  0% { opacity: .3; } 20% { opacity: 1; } 35% { opacity: .45; } 55% { opacity: 1; } 70% { opacity: .7; } 100% { opacity: 1; }
+}
+
+/* ============================================================
+   Pop-up card ("character select")
+   ============================================================ */
+.card-dialog {
+  width: min(760px, calc(100% - 32px)); max-height: calc(100vh - 32px);
+  padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible;
+}
+.card-dialog::backdrop { background: rgba(2, 3, 14, .78); backdrop-filter: blur(3px); }
+.card-dialog[open] .card { animation: card-in .32s cubic-bezier(.2,.9,.3,1.2) both; }
+.card {
+  position: relative; max-height: calc(100vh - 32px); overflow-y: auto;
+  background: linear-gradient(180deg, #121a4d, #0a0f2e 60%);
+  border: 3px solid var(--cyan); border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--magenta), 0 0 40px rgba(46,246,255,.35), 0 20px 60px rgba(0,0,0,.6);
+  padding: 22px 22px 24px;
+}
+.card__close {
+  position: absolute; top: 10px; right: 10px; width: 40px; height: 40px;
+  display: grid; place-items: center; cursor: pointer;
+  font-family: var(--sans); font-size: 22px; font-weight: 700; line-height: 1; color: var(--text);
+  background: var(--panel); border: 2px solid var(--line); border-radius: 4px;
+}
+.card__close:hover { border-color: var(--magenta); color: var(--magenta); }
+.card__close:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.card__top { display: grid; grid-template-columns: 112px 1fr; gap: 18px; align-items: start; padding-right: 44px; }
+.card__portrait {
+  background: #03040d; border: 2px solid var(--line); border-radius: 6px; padding: 8px;
+  box-shadow: inset 0 0 18px rgba(46,246,255,.15);
+}
+.card__portrait svg { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.card__seed { margin: 8px 0 0; text-align: center; font-family: var(--pixel); font-size: 9px; color: var(--cyan); letter-spacing: .08em; }
+.card__kicker { margin: 2px 0 8px; font-family: var(--pixel); font-size: 9px; line-height: 1.6; color: var(--magenta); letter-spacing: .08em; }
+.card__title { margin: 0 0 12px; font-family: var(--sans); font-size: clamp(22px, 3.4vw, 30px); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.card__title:focus { outline: none; }
+.badge {
+  display: inline-block; margin: 0 0 12px; padding: 7px 10px 6px;
+  font-family: var(--pixel); font-size: 10px; line-height: 1.3; letter-spacing: .05em;
+  color: var(--text); background: rgba(46,246,255,.12); border: 2px solid var(--cyan); border-radius: 3px;
+}
+.badge--live { border-style: dashed; }
+.badge--champion { color: #05071a; background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 14px rgba(255,233,74,.6); }
+.badge--finalist { border-color: var(--yellow); background: rgba(255,233,74,.12); }
+.card__history-label { margin: 0 0 4px; font-family: var(--pixel); font-size: 9px; color: var(--text-muted); letter-spacing: .08em; }
+.card__history { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.card__history .score { font-family: var(--pixel); font-size: 11px; color: var(--yellow); }
+.card__sections { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.card__section {
+  background: rgba(255,255,255,.035); border: 1px solid var(--line); border-left: 4px solid var(--cyan);
+  border-radius: 4px; padding: 12px 14px 14px;
+}
+.card__section:nth-child(1) { grid-column: 1 / -1; border-left-color: var(--yellow); }
+.card__section:nth-child(3) { border-left-color: var(--magenta); }
+.card__section:nth-child(4) { grid-column: 1 / -1; border-left-color: var(--lime); }
+.card__section h3 { margin: 0 0 6px; font-family: var(--sans); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.card__section p { margin: 0; font-size: 16px; line-height: 1.6; white-space: pre-line; }
+.card__section p.is-empty { color: var(--text-muted); font-style: italic; }
+@media (max-width: 600px) {
+  .card { padding: 18px 16px 20px; }
+  .card__top { grid-template-columns: 76px 1fr; gap: 14px; }
+  .card__sections { grid-template-columns: 1fr; }
+}
+@keyframes card-in {
+  0% { opacity: 0; transform: scale(.88); filter: brightness(2); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -380,6 +467,8 @@ button.slot:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   body::after { display: none; }
   .court__grid { animation: none; }
+  .is-tracing .wire.is-lit, .is-tracing .slot.is-lit, .is-tracing .champion-plate.is-lit { animation: fade-in .2s linear both; animation-delay: 0s; }
+  .card-dialog[open] .card { animation: fade-in .2s linear both; }
   .start__title { animation: none; }
   .press-start .blink { animation: soft-pulse 2.4s ease-in-out infinite; }
   .start.is-leaving { animation: fade-out .3s linear forwards; }
@@ -469,6 +558,32 @@ button.slot:focus-visible {
     <p>Every metaphor earns a finish badge — they all made the bracket.</p>
   </footer>
 </div>
+
+<!-- Metaphor pop-up card -->
+<dialog class="card-dialog" id="card-dialog" aria-labelledby="card-title">
+  <div class="card">
+    <button type="button" class="card__close" id="card-close" aria-label="Close">✕</button>
+    <div class="card__top">
+      <div class="card__portrait">
+        <svg id="card-portrait" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"></svg>
+        <p class="card__seed" id="card-seed"></p>
+      </div>
+      <div>
+        <p class="card__kicker" id="card-kicker"></p>
+        <h2 class="card__title" id="card-title" tabindex="-1"></h2>
+        <p class="badge" id="card-badge"></p>
+        <p class="card__history-label">VOTE HISTORY</p>
+        <p class="card__history" id="card-history"></p>
+      </div>
+    </div>
+    <div class="card__sections">
+      <section class="card__section"><h3>Summary</h3><p id="card-summary"></p></section>
+      <section class="card__section"><h3>How it clarifies AI</h3><p id="card-clarifies"></p></section>
+      <section class="card__section"><h3>How it could confuse or mislead</h3><p id="card-confuses"></p></section>
+      <section class="card__section"><h3>What it implies about the human–AI relationship</h3><p id="card-relationship"></p></section>
+    </div>
+  </div>
+</dialog>
 
 <script>
 "use strict";
@@ -653,11 +768,12 @@ function buildBracket(entries, votes = new Map(), bracketName = "main") {
 
   // Per-entry finish badge + vote history (used by the pop-up card).
   const finishes = new Map();
-  entries.forEach(e => finishes.set(e.id, { badge: null, alive: true, history: [] }));
+  entries.forEach(e => finishes.set(e.id, { badge: null, alive: true, reached: null, history: [] }));
   rounds.forEach((ms, r) => ms.forEach(m => {
     m.slots.forEach((s, k) => {
       if (!s) return;
       const f = finishes.get(s.entry.id);
+      if (!(compact && m.bye)) f.reached = m.label;
       if (m.bye) {
         if (!compact) f.history.push({ round: m.label, bye: true });
         return;
@@ -683,7 +799,7 @@ function buildBracket(entries, votes = new Map(), bracketName = "main") {
     if (rounds[r].some(m => !m.bye && !m.winner)) current = label(r);
   }
 
-  return { bracketName, size, numRounds, rounds, count: n, compact, label, champion, finishes, current };
+  return { bracketName, entries, size, numRounds, rounds, count: n, compact, label, champion, finishes, current };
 }
 
 /* ============================================================
@@ -712,6 +828,7 @@ function renderSlot(slot, m, k) {
   const b = el("button", "slot");
   b.type = "button";
   b.dataset.id = slot.entry.id;
+  b.dataset.card = "";
   b.dataset.seed = slot.seed;
   b.title = slot.entry.metaphor;
   let aria = `Seed ${slot.seed}: ${slot.entry.metaphor}`;
@@ -780,6 +897,7 @@ function renderRound(br, spec, order) {
       const btn = el("button", "champion-plate__name", c.entry.metaphor);
       btn.type = "button";
       btn.dataset.id = c.entry.id;
+      btn.dataset.card = "";
       btn.setAttribute("aria-label", `Champion: ${c.entry.metaphor}`);
       plate.append(btn);
     } else {
@@ -877,6 +995,7 @@ function positionPlayIns(container) {
 function layoutBracket(container, br) {
   positionPlayIns(container);
   drawWires(container, br);
+  if (typeof refreshTrace === "function") refreshTrace(container);
 }
 
 function drawWires(container, br) {
@@ -890,8 +1009,9 @@ function drawWires(container, br) {
   const card = (r, i) => container.querySelector(`.matchup[data-round="${r}"][data-index="${i}"]`);
   const last = br.numRounds - 1;
 
-  const addPath = (d, cls, order) => {
+  const addPath = (d, cls, order, to) => {
     const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.dataset.to = to;
     p.setAttribute("d", d);
     p.setAttribute("pathLength", "1");
     p.setAttribute("class", "wire " + cls);
@@ -919,7 +1039,7 @@ function drawWires(container, br) {
         let cls = "wire--left";
         if (split) cls = r === last ? "wire--center" : (fromLeft ? "wire--left" : "wire--right");
         else if (r === last) cls = "wire--center";
-        addPath(`M${sx} ${sy} H${mx} V${ty} H${tx}`, cls, r);
+        addPath(`M${sx} ${sy} H${mx} V${ty} H${tx}`, cls, r, `${r}:${i}:${k}`);
       });
     });
   }
@@ -929,8 +1049,179 @@ function drawWires(container, br) {
   if (champ && plate) {
     const c = offsetIn(champ, container), p = offsetIn(plate, container);
     const x = c.x + c.w / 2;
-    addPath(`M${x} ${c.y + c.h} V${p.y}`, "wire--center", last + 1);
+    addPath(`M${x} ${c.y + c.h} V${p.y}`, "wire--center", last + 1, "champ");
   }
+}
+
+/* ============================================================
+   Path highlight
+   ============================================================ */
+const Trace = { hoverId: null, focusId: null };
+
+function bracketFor(container) { return container.id === "main-bracket" ? App.main : null; }
+
+function highlightPath(container, id) {
+  const br = bracketFor(container);
+  container.querySelectorAll(".is-lit").forEach(n => { n.classList.remove("is-lit"); n.style.removeProperty("--step"); });
+  container.classList.toggle("is-tracing", !!(id && br));
+  if (!id || !br) return;
+  let step = 0;
+  const lite = node => { if (!node) return; node.style.setProperty("--step", step++); node.classList.add("is-lit"); };
+  br.rounds.forEach((ms, r) => ms.forEach((m, i) => {
+    const k = m.slots.findIndex(s => s && s.entry.id === id);
+    if (k < 0) return;
+    if (r > 0) lite(container.querySelector(`.wire[data-to="${r}:${i}:${k}"]`));
+    const card = container.querySelector(`.matchup[data-round="${r}"][data-index="${i}"]`);
+    if (card) lite(m.bye ? card.querySelector(".slot") : card.querySelector(`[data-slot="${k}"]`));
+  }));
+  if (br.champion && br.champion.entry.id === id) {
+    lite(container.querySelector('.wire[data-to="champ"]'));
+    lite(container.querySelector(".champion-plate"));
+  }
+}
+
+function refreshTrace(container) { highlightPath(container, Trace.hoverId || Trace.focusId); }
+
+function wireTracing(container) {
+  container.addEventListener("pointerover", e => {
+    const t = e.target.closest("[data-card]");
+    const id = t ? t.dataset.id : null;
+    if (id === Trace.hoverId) return;
+    Trace.hoverId = id;
+    refreshTrace(container);
+  });
+  container.addEventListener("pointerleave", () => { Trace.hoverId = null; refreshTrace(container); });
+  container.addEventListener("focusin", e => {
+    const t = e.target.closest("[data-card]");
+    Trace.focusId = t ? t.dataset.id : null;
+    refreshTrace(container);
+  });
+  container.addEventListener("focusout", e => {
+    if (container.contains(e.relatedTarget)) return;
+    Trace.focusId = null;
+    refreshTrace(container);
+  });
+}
+
+/* ============================================================
+   Pop-up card
+   ============================================================ */
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+// Symmetric 7×7 pixel "portrait", unique per metaphor.
+function drawPortrait(svg, key) {
+  const rand = mulberry32(hashString(key));
+  const palette = ["#2ef6ff", "#ff4af2", "#ffe94a", "#8dff6a"];
+  const main = palette[Math.floor(rand() * palette.length)];
+  let alt = palette[Math.floor(rand() * palette.length)];
+  if (alt === main) alt = "#f1f4ff";
+  let out = "";
+  for (let y = 0; y < 7; y++) for (let x = 0; x < 4; x++) {
+    const v = rand();
+    if (v < 0.48) continue;
+    const fill = v > 0.86 ? alt : main;
+    out += `<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>`;
+    if (x < 3) out += `<rect x="${6 - x}" y="${y}" width="1" height="1" fill="${fill}"/>`;
+  }
+  svg.innerHTML = out;
+}
+
+function findEntry(id) {
+  for (const br of [App.main]) {
+    if (!br) continue;
+    const k = br.entries.findIndex(e => e.id === id);
+    if (k >= 0) return { entry: br.entries[k], br, seed: k + 1 };
+  }
+  const entry = App.entries.find(e => e.id === id);
+  return entry ? { entry, br: null, seed: null } : null;
+}
+
+function historyText(f) {
+  if (!f || !f.history.length) return "No votes yet";
+  return f.history.map(h => h.bye
+    ? `${h.round}: Bye`
+    : `${h.round}: ${h.votes}–${h.opp}${h.tiebreak ? " (tiebreak)" : ""}`).join(" · ");
+}
+
+const Card = { opener: null, openId: null };
+
+function openCard(id, opener) {
+  const found = findEntry(id);
+  if (!found) return;
+  const { entry, br, seed } = found;
+  const f = br ? br.finishes.get(id) : null;
+  const dlg = document.getElementById("card-dialog");
+  Card.opener = opener || document.activeElement;
+  Card.openId = id;
+
+  drawPortrait(document.getElementById("card-portrait"), entry.id + "|" + entry.metaphor);
+  document.getElementById("card-seed").textContent = seed ? `SEED ${seed}` : "";
+  document.getElementById("card-kicker").textContent =
+    entry.bracket === "bonus" ? "BONUS STAGE · PLAYER SELECT" : "MAIN BRACKET · PLAYER SELECT";
+  document.getElementById("card-title").textContent = entry.metaphor;
+
+  const badge = document.getElementById("card-badge");
+  badge.className = "badge";
+  if (f && f.badge) {
+    badge.textContent = (/Champion/.test(f.badge) ? "♛ " : "") + f.badge;
+    if (/Champion/.test(f.badge)) badge.classList.add("badge--champion");
+    if (f.badge === "Finalist") badge.classList.add("badge--finalist");
+  } else if (f && f.reached) {
+    badge.textContent = `Still in · ${f.reached}`;
+    badge.classList.add("badge--live");
+  } else {
+    badge.textContent = "Bonus Entry";
+  }
+
+  const hist = document.getElementById("card-history");
+  hist.textContent = historyText(f);
+
+  for (const key of ["summary", "clarifies", "confuses", "relationship"]) {
+    const p = document.getElementById("card-" + key);
+    const txt = (entry[key] || "").trim();
+    p.textContent = txt || "Explanation coming soon";
+    p.classList.toggle("is-empty", !txt);
+  }
+
+  if (!dlg.open) dlg.showModal();
+  document.getElementById("card-close").focus();
+  dlg.querySelector(".card").scrollTop = 0;
+}
+
+function setupCard() {
+  const dlg = document.getElementById("card-dialog");
+  document.getElementById("card-close").addEventListener("click", () => dlg.close());
+  // Click on the backdrop (outside the card) closes it.
+  dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+  // Keep Tab inside the dialog.
+  dlg.addEventListener("keydown", e => {
+    if (e.key !== "Tab") return;
+    const items = [...dlg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter(n => !n.disabled && n.offsetParent !== null);
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!dlg.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  });
+  // Return focus to the metaphor that opened the card.
+  dlg.addEventListener("close", () => {
+    let back = Card.opener;
+    if (!back || !document.contains(back)) {
+      back = document.querySelector(`[data-card][data-id="${CSS.escape(Card.openId || "")}"]`);
+    }
+    if (back) back.focus({ preventScroll: true });
+    Card.opener = null; Card.openId = null;
+  });
+  // Any metaphor button anywhere opens its card.
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-card]");
+    if (t && t.dataset.id) openCard(t.dataset.id, t);
+  });
 }
 
 /* ============================================================
@@ -1084,6 +1375,8 @@ window.addEventListener("resize", () => {
 
 (async function boot() {
   document.getElementById("press-start").focus();
+  setupCard();
+  wireTracing(document.getElementById("main-bracket"));
   await loadData();
   renderAll();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshLayout);
