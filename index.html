@@ -697,6 +697,43 @@ button.slot:focus-visible {
 @keyframes tile-in { from { opacity: 0; transform: translateY(18px) scale(.94); } to { opacity: 1; transform: none; } }
 
 /* ============================================================
+   Round navigator (narrow screens: drag OR tap between rounds)
+   ============================================================ */
+.bracket-scroll.is-paged { scroll-snap-type: x mandatory; scroll-padding-left: 16px; }
+.round-nav {
+  position: sticky; top: 0; z-index: 18;
+  display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 8px;
+  margin: 0 16px 6px; padding: 6px;
+  background: rgba(7, 9, 32, .95); border: 2px solid var(--cyan); border-radius: 8px;
+  box-shadow: 0 0 16px rgba(46,246,255,.25), 0 8px 20px rgba(0,0,0,.45);
+}
+.round-nav[hidden] { display: none; }
+.bonus-section .round-nav { margin-left: 0; margin-right: 0; }
+.round-nav__arrow {
+  width: 52px; height: 52px; display: grid; place-items: center; cursor: pointer;
+  font-family: var(--pixel); font-size: 16px; line-height: 1;
+  color: #05071a; background: var(--cyan); border: 0; border-radius: 6px;
+}
+.round-nav__arrow:disabled { cursor: default; color: var(--text-muted); background: transparent; border: 2px dashed var(--line); }
+.round-nav__arrow:focus-visible, .round-nav__dot:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.round-nav__mid { min-width: 0; text-align: center; }
+.round-nav__label { margin: 0; font-family: var(--pixel); font-size: 11px; line-height: 1.5; color: var(--yellow); }
+.round-nav__count { margin: 0; font-size: 13px; color: var(--text-muted); }
+.round-nav__dots { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 2px; }
+.round-nav__dot {
+  width: 34px; height: 30px; padding: 0; display: grid; place-items: center;
+  background: none; border: 0; border-radius: 4px; cursor: pointer;
+}
+.round-nav__dot::before {
+  content: ""; width: 11px; height: 11px; border: 2px solid var(--cyan); border-radius: 2px; background: transparent;
+}
+.round-nav__dot[aria-current="step"]::before { background: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 8px rgba(255,233,74,.8); }
+.round-nav__hint { margin: 0 16px 8px; text-align: center; font-size: 13px; color: var(--text-muted); }
+.round-nav__hint[hidden] { display: none; }
+.bonus-section .round-nav__hint { margin-left: 0; margin-right: 0; }
+@media (max-width: 1099px) { .view-toggle { position: static; } }   /* the round bar is the sticky one here */
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -821,6 +858,9 @@ button.slot:focus-visible {
         <h2 id="main-bracket-heading" tabindex="-1">Main Bracket</h2>
         <p class="section-meta" id="main-bracket-meta"></p>
       </div>
+      <div class="round-nav" id="main-nav" role="group" aria-label="Main bracket rounds" hidden></div>
+      <p class="round-nav__hint" id="main-nav-hint" hidden>Swipe sideways or tap the arrows to move between rounds.</p>
+      <p class="sr-only" id="main-nav-live" aria-live="polite"></p>
       <div class="bracket-scroll">
         <div class="bracket-canvas" id="main-bracket"></div>
       </div>
@@ -840,6 +880,9 @@ button.slot:focus-visible {
           <span class="showcase__cta">Read the explanation ▶</span>
         </span>
       </button>
+      <div class="round-nav" id="bonus-nav" role="group" aria-label="Bonus bracket rounds" hidden></div>
+      <p class="round-nav__hint" id="bonus-nav-hint" hidden>Swipe sideways or tap the arrows to move between rounds.</p>
+      <p class="sr-only" id="bonus-nav-live" aria-live="polite"></p>
       <div class="bracket-scroll" id="bonus-scroll">
         <div class="bracket-canvas" id="bonus-bracket"></div>
       </div>
@@ -1314,6 +1357,7 @@ function renderBracket(container, br) {
   svg.setAttribute("aria-hidden", "true");
   container.prepend(svg);
   layoutBracket(container, br);
+  setupRoundNav(container, split);
 }
 
 // Position relative to the canvas, ignoring CSS transforms (entrance animation).
@@ -1347,6 +1391,140 @@ function layoutBracket(container, br) {
   positionPlayIns(container);
   drawWires(container, br);
   if (typeof refreshTrace === "function") refreshTrace(container);
+  updateRoundNav(container);
+}
+
+/* ---------- Round navigator: tap arrows / dots, or drag; both stay in sync ---------- */
+function navParts(container) {
+  const key = container.id.replace("-bracket", "");
+  return {
+    nav: document.getElementById(key + "-nav"),
+    hint: document.getElementById(key + "-nav-hint"),
+    live: document.getElementById(key + "-nav-live"),
+    scroll: container.closest(".bracket-scroll")
+  };
+}
+
+function navColumns(container) { return [...container.querySelectorAll(":scope > .round")]; }
+
+function currentColumn(container) {
+  const { scroll } = navParts(container);
+  const cols = navColumns(container);
+  if (!scroll || !cols.length) return 0;
+  const left = scroll.getBoundingClientRect().left + 16;
+  const max = scroll.scrollWidth - scroll.clientWidth;
+  if (max > 0 && scroll.scrollLeft >= max - 2) {
+    // Scrolled to the end: the last column that starts on screen counts as current.
+    const right = scroll.getBoundingClientRect().right;
+    let k = cols.length - 1;
+    while (k > 0 && cols[k].getBoundingClientRect().left > right - 40) k--;
+    return Math.max(k, cols.findIndex(c => Math.abs(c.getBoundingClientRect().left - left) < 40), 0);
+  }
+  let best = 0, dist = Infinity;
+  cols.forEach((c, k) => { const d = Math.abs(c.getBoundingClientRect().left - left); if (d < dist) { dist = d; best = k; } });
+  return best;
+}
+
+function goToColumn(container, k, { announce = true } = {}) {
+  const { scroll, nav } = navParts(container);
+  const cols = navColumns(container);
+  if (!scroll || !cols[k]) return;
+  const smooth = !reduceMotion();
+  const x = cols[k].getBoundingClientRect().left - scroll.getBoundingClientRect().left + scroll.scrollLeft - 16;
+  scroll.scrollTo({ left: Math.max(0, x), behavior: smooth ? "smooth" : "auto" });
+  // If the new round's games are above/below the screen (e.g. after scrolling down a long column), bring them into view.
+  const first = cols[k].querySelector(".matchup, .champ-stack");
+  if (first) {
+    const r = first.getBoundingClientRect(), navBottom = nav ? nav.getBoundingClientRect().bottom : 0;
+    if (r.top < navBottom + 8 || r.top > innerHeight - 80) {
+      window.scrollBy({ top: r.top - navBottom - 16, behavior: smooth ? "smooth" : "auto" });
+    }
+  }
+  if (announce) setNavState(container, k, true);
+}
+
+function setNavState(container, k, announce = false) {
+  const { nav, live } = navParts(container);
+  if (!nav || nav.hidden || !nav._labels) return;
+  const n = nav._labels.length;
+  k = Math.max(0, Math.min(n - 1, k));
+  if (nav._current === k && !announce) return;
+  nav._current = k;
+  nav.querySelector(".round-nav__label").textContent = nav._labels[k];
+  nav.querySelector(".round-nav__count").textContent = `Round ${k + 1} of ${n}`;
+  const prev = nav.querySelector('[data-dir="-1"]'), next = nav.querySelector('[data-dir="1"]');
+  prev.disabled = k === 0;
+  next.disabled = k === n - 1;
+  prev.setAttribute("aria-label", k === 0 ? "Previous round (this is the first round)" : `Previous round: ${nav._labels[k - 1]}`);
+  next.setAttribute("aria-label", k === n - 1 ? "Next round (this is the last round)" : `Next round: ${nav._labels[k + 1]}`);
+  nav.querySelectorAll(".round-nav__dot").forEach((d, j) => {
+    if (j === k) d.setAttribute("aria-current", "step"); else d.removeAttribute("aria-current");
+  });
+  if (announce && live) live.textContent = `Showing ${nav._labels[k]}, round ${k + 1} of ${n}.`;
+}
+
+function updateRoundNav(container) {
+  const { nav } = navParts(container);
+  if (nav && !nav.hidden) setNavState(container, currentColumn(container));
+}
+
+function setupRoundNav(container, split) {
+  const { nav, hint, scroll } = navParts(container);
+  if (!nav || !scroll) return;
+  scroll.classList.toggle("is-paged", !split);
+  const cols = navColumns(container);
+  if (split || cols.length < 2) { nav.hidden = true; hint.hidden = true; nav.innerHTML = ""; nav._labels = null; return; }
+  nav._labels = cols.map(c => c.querySelector(".round__label").textContent);
+  nav._current = -1;
+  nav.innerHTML = "";
+  const arrow = (dir, sym) => {
+    const b = el("button", "round-nav__arrow", sym);
+    b.type = "button"; b.dataset.dir = dir;
+    return b;
+  };
+  const mid = el("div", "round-nav__mid");
+  const label = el("p", "round-nav__label");
+  label.setAttribute("aria-hidden", "true");
+  const count = el("p", "round-nav__count");
+  count.setAttribute("aria-hidden", "true");
+  const dots = el("div", "round-nav__dots");
+  nav._labels.forEach((l, k) => {
+    const d = el("button", "round-nav__dot");
+    d.type = "button"; d.dataset.go = k;
+    d.setAttribute("aria-label", `Go to ${l}`);
+    dots.append(d);
+  });
+  mid.append(label, count, dots);
+  nav.append(arrow(-1, "◀"), mid, arrow(1, "▶"));
+  nav.hidden = false;
+  hint.hidden = false;
+
+  if (!nav._bound) {
+    nav._bound = true;
+    nav.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b || b.disabled) return;
+      const c = nav._container;
+      if (b.dataset.dir) goToColumn(c, (nav._current < 0 ? 0 : nav._current) + +b.dataset.dir);
+      else if (b.dataset.go != null) goToColumn(c, +b.dataset.go);
+    });
+    nav.addEventListener("keydown", e => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      goToColumn(nav._container, nav._current + (e.key === "ArrowRight" ? 1 : -1));
+    });
+    let raf = 0, idle = 0;
+    scroll.addEventListener("scroll", () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setNavState(nav._container, currentColumn(nav._container)));
+      clearTimeout(idle);   // announce where a drag ended up, once it stops
+      idle = setTimeout(() => { if (!nav.hidden) setNavState(nav._container, nav._current, true); }, 400);
+      const h = navParts(nav._container).hint;
+      if (h && scroll.scrollLeft > 30) h.hidden = true;   // they've found it
+    }, { passive: true });
+  }
+  nav._container = container;
+  setNavState(container, currentColumn(container));
 }
 
 function drawWires(container, br) {
@@ -2540,6 +2718,8 @@ function renderBonus() {
   const container = document.getElementById("bonus-bracket");
   App.bonus = null;
   container.innerHTML = "";
+  document.getElementById("bonus-nav").hidden = true;
+  document.getElementById("bonus-nav-hint").hidden = true;
   if (!entries.length) { section.hidden = true; return; }
   section.hidden = false;
   if (entries.length === 1) {

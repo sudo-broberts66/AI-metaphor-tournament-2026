@@ -83,6 +83,10 @@ refresh (Ctrl/Cmd + Shift + R).
 
 ## Accessibility
 
+On phones and narrow windows the bracket shows one round at a time: swipe sideways, or use the
+sticky **◀ / ▶** round bar (and its dots) to jump between rounds. The bar also works with the
+keyboard (Tab to it, then ← / →) and announces the round to screen readers.
+
 Keyboard-operable throughout (every metaphor is a button, focus shows its path), proper dialog
 for the pop-up card (focus moves in, is trapped, and returns), heading structure, WCAG AA
 contrast (checked with axe-core), and `prefers-reduced-motion` swaps movement, confetti and
