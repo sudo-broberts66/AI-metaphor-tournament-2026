@@ -53,20 +53,51 @@ button { font: inherit; color: inherit; }
 }
 
 /* ============================================================
-   Arena background: court lines + CRT scanlines + vignette
+   Arena background: synthwave grid floor + CRT scanlines + vignette
    ============================================================ */
 .court {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  --horizon: 38%;
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(40, 60, 170, .28), transparent 60%),
-    radial-gradient(ellipse at 50% 120%, rgba(255, 74, 242, .10), transparent 55%),
-    var(--bg);
+    linear-gradient(to bottom,
+      #04051a 0%,
+      #0b0a2e calc(var(--horizon) - 22%),
+      #2a0c55 calc(var(--horizon) - 4%),
+      #5a1470 var(--horizon),
+      #05071a var(--horizon));
 }
-.court svg { width: 100%; height: 100%; display: block; }
-.court .c { fill: none; stroke-width: 2; }
-.court .c-cyan { stroke: rgba(46, 246, 255, .13); }
-.court .c-mag  { stroke: rgba(255, 74, 242, .12); }
-.court .c-yel  { stroke: rgba(255, 233, 74, .10); }
+/* soft glow sitting on the horizon */
+.court__glow {
+  position: absolute; left: 0; right: 0; top: calc(var(--horizon) - 18%); height: 36%;
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255, 74, 242, .28), transparent 70%);
+}
+.court__floor {
+  position: absolute; left: 0; right: 0; top: var(--horizon); bottom: 0;
+  perspective: 420px; perspective-origin: 50% 0%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 22%);
+          mask-image: linear-gradient(to bottom, transparent 0%, #000 22%);
+}
+.court__grid {
+  position: absolute; left: -100%; right: -100%; top: 0; height: 260%;
+  transform-origin: 50% 0; transform: rotateX(64deg);
+  background-image:
+    linear-gradient(to right, rgba(255, 74, 242, .55) 0 2px, transparent 2px),
+    linear-gradient(to bottom, rgba(46, 246, 255, .5) 0 2px, transparent 2px);
+  background-size: 56px 56px;
+  background-position: 50% 0;
+  animation: grid-scroll 6s linear infinite;
+}
+.court__horizon {
+  position: absolute; left: 0; right: 0; top: var(--horizon); height: 2px;
+  background: linear-gradient(to right, transparent, var(--magenta) 20%, var(--magenta) 80%, transparent);
+  box-shadow: 0 0 12px 2px rgba(255, 74, 242, .7);
+}
+/* dim layer so the bracket stays easy to read on a projector */
+.court__shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(5,7,26,.15), rgba(5,7,26,.35) 60%, rgba(5,7,26,.55));
+}
+@keyframes grid-scroll { to { background-position: 50% 56px; } }
 
 body::after {          /* scanlines */
   content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none;
@@ -87,7 +118,7 @@ body::before {         /* vignette */
   gap: 28px; padding: 24px 16px; text-align: center;
   background:
     radial-gradient(ellipse at 50% 45%, rgba(46, 246, 255, .10), transparent 60%),
-    rgba(5, 7, 26, .96);
+    transparent;
 }
 .start[hidden] { display: none; }
 .start__trophy { width: 72px; height: auto; filter: drop-shadow(0 0 10px rgba(255,233,74,.6)); }
@@ -141,6 +172,7 @@ body::before {         /* vignette */
    Page chrome
    ============================================================ */
 .page { position: relative; z-index: 1; }
+body:not(.started) .page { visibility: hidden; }
 .arena-header { text-align: center; padding: 36px 16px 12px; }
 .arena-header h1 {
   font-family: var(--pixel); font-weight: 400;
@@ -317,6 +349,7 @@ button.slot:focus-visible {
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   body::after { display: none; }
+  .court__grid { animation: none; }
   .start__title { animation: none; }
   .press-start .blink { animation: soft-pulse 2.4s ease-in-out infinite; }
   .start.is-leaving { animation: fade-out .3s linear forwards; }
@@ -333,18 +366,10 @@ button.slot:focus-visible {
 <body>
 
 <div class="court" aria-hidden="true">
-  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
-    <rect class="c c-cyan" x="60" y="60" width="1480" height="780"/>
-    <line class="c c-yel" x1="800" y1="60" x2="800" y2="840"/>
-    <circle class="c c-yel" cx="800" cy="450" r="120"/>
-    <circle class="c c-mag" cx="800" cy="450" r="40"/>
-    <rect class="c c-cyan" x="60" y="330" width="260" height="240"/>
-    <circle class="c c-cyan" cx="320" cy="450" r="120"/>
-    <path class="c c-cyan" d="M60 130 H200 A420 420 0 0 1 200 770 H60"/>
-    <rect class="c c-mag" x="1280" y="330" width="260" height="240"/>
-    <circle class="c c-mag" cx="1280" cy="450" r="120"/>
-    <path class="c c-mag" d="M1540 130 H1400 A420 420 0 0 0 1400 770 H1540"/>
-  </svg>
+  <div class="court__glow"></div>
+  <div class="court__floor"><div class="court__grid"></div></div>
+  <div class="court__horizon"></div>
+  <div class="court__shade"></div>
 </div>
 
 <!-- START SCREEN -->
@@ -768,6 +793,7 @@ function startGame() {
   started = true;
   const start = document.getElementById("start");
   const page = document.getElementById("page");
+  document.body.classList.add("started");
   page.classList.add("is-entering");
   start.classList.add("is-leaving");
   const done = () => {
