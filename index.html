@@ -308,6 +308,28 @@ button.slot:focus-visible {
   font-size: 13px; font-weight: 600; color: var(--lime);
 }
 .bye-note::before { content: "▶ "; }
+.match-note {
+  margin: 0; padding: 5px 10px 7px; border-top: 1px dashed var(--line);
+  font-size: 12px; font-weight: 600; color: var(--yellow);
+}
+
+/* Winner: glowing outline + ADVANCES banner (never mark the other entry) */
+.slot { position: relative; }
+.slot--advances {
+  box-shadow: inset 0 0 0 2px var(--lime), 0 0 14px rgba(141, 255, 106, .45);
+  background: rgba(141, 255, 106, .06);
+}
+.advance-tag {
+  position: absolute; right: 6px; top: -8px; z-index: 3; pointer-events: none;
+  font-family: var(--pixel); font-size: 7px; line-height: 1; letter-spacing: .05em;
+  padding: 3px 5px; border-radius: 2px;
+  background: var(--lime); color: #05071a;
+  box-shadow: 0 0 8px rgba(141, 255, 106, .7);
+}
+
+/* Compact Play-In: only real games, each placed beside the slot it feeds */
+.round--playin .round__matches { display: block; position: relative; min-height: 0; }
+.round--playin .matchup { position: absolute; left: 0; right: 0; }
 
 /* Championship center */
 .champ-stack { position: relative; }
@@ -324,7 +346,15 @@ button.slot:focus-visible {
   box-shadow: 0 0 16px rgba(255,233,74,.2), inset 0 0 12px rgba(255,233,74,.08);
 }
 .champion-plate__label { font-family: var(--pixel); font-size: 10px; color: var(--yellow); margin: 0 0 8px; letter-spacing: .1em; }
-.champion-plate__name { font-family: var(--pixel); font-size: 11px; color: var(--text-muted); margin: 0; letter-spacing: .2em; }
+.champion-plate__tbd { font-family: var(--pixel); font-size: 11px; color: var(--text-muted); margin: 0; letter-spacing: .2em; }
+.champion-plate__name {
+  display: block; width: 100%; background: none; border: 0; padding: 2px 4px; cursor: pointer;
+  font-family: var(--sans); font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--text);
+  border-radius: 3px;
+}
+.champion-plate__name:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.champion-plate.is-lit { background: rgba(255,233,74,.14); box-shadow: 0 0 26px rgba(255,233,74,.45), inset 0 0 14px rgba(255,233,74,.15); }
+.trophy.is-lit { filter: drop-shadow(0 0 14px rgba(255,233,74,.95)) drop-shadow(0 0 30px rgba(255,233,74,.5)); }
 .is-columns .round--center .round__matches { justify-content: center; padding: 150px 0 110px; }
 
 .page-footer { text-align: center; padding: 10px 16px 40px; color: var(--text-muted); font-size: 14px; }
@@ -496,7 +526,43 @@ function normalizeEntries(objs) {
 }
 
 /* ============================================================
-   Bracket structure (seeding + byes)
+   Votes
+   ============================================================ */
+// Round names are matched loosely ("Elite 8", "elite8", "ELITE EIGHT"…).
+// A plain number also works: 1 = first round shown (Play-In if there is one).
+function roundKey(s) {
+  const t = String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const alias = {
+    sweet16: "roundof16", eliteeight: "elite8", final4: "finalfour",
+    final: "championship", finals: "championship", champ: "championship",
+    championshipgame: "championship", playins: "playin"
+  };
+  return alias[t] || t;
+}
+
+function isYes(s) { return /^(yes|y|true|1|x)$/i.test(String(s ?? "").trim()); }
+
+function normalizeVotes(objs) {
+  return objs
+    .filter(o => o.id !== "" && o.round !== "" && o.votes !== "")
+    .map(o => ({
+      id: String(o.id),
+      bracket: (o.bracket || "main").toLowerCase() === "bonus" ? "bonus" : "main",
+      round: o.round,
+      votes: parseInt(o.votes, 10),
+      tiebreak: isYes(o.tiebreak_win)
+    }))
+    .filter(v => Number.isFinite(v.votes) && v.votes >= 0);
+}
+
+function indexVotes(rows) {
+  const map = new Map();
+  rows.forEach(v => map.set(`${v.bracket}|${roundKey(v.round)}|${v.id}`, v));
+  return map;
+}
+
+/* ============================================================
+   Bracket engine
    ============================================================ */
 function nextPow2(n) { let s = 2; while (s < n) s *= 2; return s; }
 
@@ -519,31 +585,105 @@ function roundName(remaining) {
   }
 }
 
-function buildBracket(entries) {
+/**
+ * Builds the whole bracket and computes every result from the vote rows.
+ * Nothing about structure is stored: it all follows from seed order + votes.
+ */
+function buildBracket(entries, votes = new Map(), bracketName = "main") {
   const n = entries.length;
   const size = nextPow2(Math.max(n, 2));
   const numRounds = Math.log2(size);
   const order = seedOrder(size);
-  const rounds = [];
+  const realFirst = n - size / 2;          // first-round games with two entries
+  const byes = size - n;                   // first-round games with one entry
+  // Mostly byes → draw only the real games as a compact Play-In.
+  const compact = numRounds > 1 && byes > realFirst;
+  const label = r => (compact && r === 0) ? "Play-In" : roundName(size >> r);
 
-  const first = [];
-  for (let i = 0; i < size; i += 2) {
-    const slots = [order[i], order[i + 1]].map(seed =>
-      seed <= n ? { seed, entry: entries[seed - 1] } : null);
-    const m = { round: 0, index: i / 2, slots, winner: null, bye: false };
-    if (!slots[0] || !slots[1]) { m.bye = true; m.winner = slots[0] || slots[1]; }
-    first.push(m);
+  const lookup = (r, id) =>
+    votes.get(`${bracketName}|${roundKey(label(r))}|${id}`) ||
+    votes.get(`${bracketName}|${String(r + 1)}|${id}`) || null;
+
+  function resolve(m) {
+    if (m.bye) return;
+    const [a, b] = m.slots;
+    if (!a || !b) return;
+    const va = lookup(m.round, a.entry.id), vb = lookup(m.round, b.entry.id);
+    if (!va || !vb) return;                // not scored yet
+    m.scored = true;
+    m.votes = [va.votes, vb.votes];
+    let w = null;
+    if (va.votes > vb.votes) w = 0;
+    else if (vb.votes > va.votes) w = 1;
+    else {
+      if (va.tiebreak && !vb.tiebreak) w = 0;
+      else if (vb.tiebreak && !va.tiebreak) w = 1;
+      m.tie = true;
+    }
+    if (w !== null) { m.winnerIdx = w; m.winner = m.slots[w]; m.tiebreak = !!m.tie; m.tie = false; }
   }
-  rounds.push(first);
 
-  for (let r = 1; r < numRounds; r++) {
-    const prev = rounds[r - 1], cur = [];
-    for (let i = 0; i < prev.length / 2; i++) {
-      cur.push({ round: r, index: i, slots: [prev[2 * i].winner, prev[2 * i + 1].winner], winner: null, bye: false });
+  const rounds = [];
+  for (let r = 0; r < numRounds; r++) {
+    const cur = [];
+    const count = size >> (r + 1);
+    for (let i = 0; i < count; i++) {
+      let slots;
+      if (r === 0) {
+        slots = [order[2 * i], order[2 * i + 1]].map(seed =>
+          seed <= n ? { seed, entry: entries[seed - 1] } : null);
+      } else {
+        slots = [rounds[r - 1][2 * i].winner, rounds[r - 1][2 * i + 1].winner];
+      }
+      const m = {
+        round: r, index: i, label: label(r), slots, bye: false,
+        scored: false, votes: [null, null], winner: null, winnerIdx: null, tie: false, tiebreak: false
+      };
+      if (r === 0 && (!slots[0] || !slots[1])) {
+        m.bye = true; m.winner = slots[0] || slots[1]; m.winnerIdx = slots[0] ? 0 : 1;
+      }
+      resolve(m);
+      cur.push(m);
     }
     rounds.push(cur);
   }
-  return { size, numRounds, rounds, count: n };
+
+  const last = numRounds - 1;
+  const champion = rounds[last][0].winner;
+
+  // Per-entry finish badge + vote history (used by the pop-up card).
+  const finishes = new Map();
+  entries.forEach(e => finishes.set(e.id, { badge: null, alive: true, history: [] }));
+  rounds.forEach((ms, r) => ms.forEach(m => {
+    m.slots.forEach((s, k) => {
+      if (!s) return;
+      const f = finishes.get(s.entry.id);
+      if (m.bye) {
+        if (!compact) f.history.push({ round: m.label, bye: true });
+        return;
+      }
+      const opp = m.slots[1 - k];
+      if (!opp) return;
+      if (m.scored) f.history.push({ round: m.label, votes: m.votes[k], opp: m.votes[1 - k], tiebreak: m.tiebreak, advanced: m.winner ? m.winnerIdx === k : null });
+      if (m.winner && m.winnerIdx !== k) {
+        f.alive = false;
+        f.badge = r === last ? "Finalist" : m.label;
+      }
+    });
+  }));
+  if (champion) {
+    const f = finishes.get(champion.entry.id);
+    f.alive = false;
+    f.badge = bracketName === "bonus" ? "Bonus Champion" : "Champion";
+  }
+
+  // The earliest round that still has a game left to play.
+  let current = null;
+  for (let r = 0; r < numRounds && !current; r++) {
+    if (rounds[r].some(m => !m.bye && !m.winner)) current = label(r);
+  }
+
+  return { bracketName, size, numRounds, rounds, count: n, compact, label, champion, finishes, current };
 }
 
 /* ============================================================
@@ -556,7 +696,7 @@ const el = (tag, cls, text) => {
   return e;
 };
 
-function renderSlot(slot) {
+function renderSlot(slot, m, k) {
   if (!slot) {
     const d = el("div", "slot slot--tbd");
     d.append(el("span", "slot__seed", "·"));
@@ -565,17 +705,33 @@ function renderSlot(slot) {
     d.append(nm, el("span", "sr-only", "To be decided"));
     return d;
   }
+  const scored = m && m.scored;
+  const v = scored ? m.votes[k] : null;
+  const advances = m && !m.bye && m.winner && m.winnerIdx === k;
+
   const b = el("button", "slot");
   b.type = "button";
   b.dataset.id = slot.entry.id;
   b.dataset.seed = slot.seed;
   b.title = slot.entry.metaphor;
-  b.setAttribute("aria-label", `Seed ${slot.seed}: ${slot.entry.metaphor}`);
+  let aria = `Seed ${slot.seed}: ${slot.entry.metaphor}`;
+  if (scored) aria += `, ${v} vote${v === 1 ? "" : "s"}`;
+  if (advances) aria += m.tiebreak ? ", advances on a tiebreak" : ", advances";
+  b.setAttribute("aria-label", aria);
+  if (advances) b.classList.add("slot--advances");
+
   b.append(el("span", "slot__seed", String(slot.seed)), el("span", "slot__name", slot.entry.metaphor));
   const led = el("span", "led");
   led.setAttribute("aria-hidden", "true");
-  led.append(el("span", "led__ghost", "88"));
+  const digits = scored ? String(v) : "";
+  led.append(el("span", "led__ghost", "8".repeat(Math.max(2, digits.length))));
+  if (scored) led.append(el("span", "led__digits", digits.padStart(2, " ")));
   b.append(led);
+  if (advances) {
+    const tag = el("span", "advance-tag", "ADVANCES ▶");
+    tag.setAttribute("aria-hidden", "true");
+    b.append(tag);
+  }
   return b;
 }
 
@@ -585,52 +741,89 @@ function renderMatchup(m) {
   card.dataset.index = m.index;
   if (m.bye) {
     card.classList.add("matchup--bye");
-    const s = renderSlot(m.winner);
+    const s = renderSlot(m.winner, null, 0);
     s.dataset.slot = "0";
     card.append(s, el("p", "bye-note", "Advances on a bye"));
   } else {
-    m.slots.forEach((s, k) => { const node = renderSlot(s); node.dataset.slot = String(k); card.append(node); });
+    m.slots.forEach((s, k) => { const node = renderSlot(s, m, k); node.dataset.slot = String(k); card.append(node); });
+    if (m.tiebreak) card.append(el("p", "match-note", "Tie! Winner picked by tiebreak"));
+    else if (m.tie) card.append(el("p", "match-note", "Tie! Awaiting tiebreak"));
   }
   return card;
 }
 
-function renderRound(br, r, matchups, side, order) {
-  const col = el("div", `round round--${side}`);
+function makeTrophy(lit) {
+  const t = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  t.setAttribute("viewBox", "0 0 16 16");
+  t.setAttribute("class", "trophy" + (lit ? " is-lit" : ""));
+  t.setAttribute("shape-rendering", "crispEdges");
+  t.setAttribute("aria-hidden", "true");
+  t.innerHTML = '<use href="#pixel-trophy"/>';
+  return t;
+}
+
+function renderRound(br, spec, order) {
+  const { r, ms, side, playin } = spec;
+  const col = el("div", `round round--${side}` + (playin ? " round--playin" : ""));
   col.style.setProperty("--i", order);
-  const label = el("h3", "round__label", roundName(br.size >> r));
-  col.append(label);
+  col.append(el("h3", "round__label", br.label(r)));
   const list = el("div", "round__matches");
   if (side === "center") {
-    const m = matchups[0];
     const stack = el("div", "champ-stack");
     const top = el("div", "champ-top");
-    const trophy = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    trophy.setAttribute("viewBox", "0 0 16 16");
-    trophy.setAttribute("class", "trophy");
-    trophy.setAttribute("shape-rendering", "crispEdges");
-    trophy.setAttribute("aria-hidden", "true");
-    trophy.innerHTML = '<use href="#pixel-trophy"/>';
-    top.append(trophy);
-    const card = renderMatchup(m);
+    top.append(makeTrophy(!!br.champion));
     const bottom = el("div", "champ-bottom");
-    const plate = el("div", "champion-plate");
-    plate.append(el("p", "champion-plate__label", "CHAMPION"));
-    const nm = el("p", "champion-plate__name", "???");
-    nm.setAttribute("aria-label", "To be decided");
-    plate.append(nm);
+    const plate = el("div", "champion-plate" + (br.champion ? " is-lit" : ""));
+    plate.append(el("p", "champion-plate__label", br.bracketName === "bonus" ? "BONUS CHAMPION" : "CHAMPION"));
+    if (br.champion) {
+      const c = br.champion;
+      const btn = el("button", "champion-plate__name", c.entry.metaphor);
+      btn.type = "button";
+      btn.dataset.id = c.entry.id;
+      btn.setAttribute("aria-label", `Champion: ${c.entry.metaphor}`);
+      plate.append(btn);
+    } else {
+      const nm = el("p", "champion-plate__tbd", "???");
+      nm.setAttribute("aria-label", "To be decided");
+      plate.append(nm);
+    }
     bottom.append(plate);
-    stack.append(top, card, bottom);
+    stack.append(top, renderMatchup(ms[0]), bottom);
     list.append(stack);
   } else {
-    matchups.forEach(m => list.append(renderMatchup(m)));
+    ms.forEach(m => list.append(renderMatchup(m)));
   }
   col.append(list);
   return col;
 }
 
+// Which columns to draw, left to right.
+function columnSpecs(br, split) {
+  const last = br.numRounds - 1;
+  const ms = (r, part) => {
+    let all = br.rounds[r];
+    if (part === "left") all = all.slice(0, all.length / 2);
+    if (part === "right") all = all.slice(all.length / 2);
+    return (br.compact && r === 0) ? all.filter(m => !m.bye) : all;
+  };
+  const specs = [];
+  const push = (r, part, side) => {
+    const list = ms(r, part);
+    if (list.length) specs.push({ r, ms: list, side, playin: br.compact && r === 0 });
+  };
+  if (split && last >= 1) {
+    for (let r = 0; r < last; r++) push(r, "left", "left");
+    push(last, "all", "center");
+    for (let r = last - 1; r >= 0; r--) push(r, "right", "right");
+  } else {
+    for (let r = 0; r <= last; r++) push(r, "all", r === last ? "center" : "left");
+  }
+  return specs;
+}
+
 // Split layout needs room for every column; otherwise use scrolling columns.
 function wantsSplit(br) {
-  const cols = br.numRounds === 1 ? 1 : (br.numRounds - 1) * 2 + 1;
+  const cols = columnSpecs(br, true).length;
   const need = cols * 150 + 30 + (cols - 1) * 18 + 32;
   return window.innerWidth >= Math.max(need, 900);
 }
@@ -641,33 +834,17 @@ function renderBracket(container, br) {
   container.classList.toggle("is-split", split);
   container.classList.toggle("is-columns", !split);
   container.dataset.layout = split ? "split" : "columns";
-  const last = br.numRounds - 1;
-  const cols = [];
-
-  if (split) {
-    for (let r = 0; r < last; r++) {
-      const ms = br.rounds[r];
-      cols.push(renderRound(br, r, ms.slice(0, ms.length / 2), "left", r));
-    }
-    cols.push(renderRound(br, last, br.rounds[last], "center", last));
-    for (let r = last - 1; r >= 0; r--) {
-      const ms = br.rounds[r];
-      cols.push(renderRound(br, r, ms.slice(ms.length / 2), "right", r));
-    }
-    const side = last;
-    container.style.gridTemplateColumns =
-      `repeat(${side}, minmax(150px, 1fr)) minmax(180px, 1.15fr) repeat(${side}, minmax(150px, 1fr))`;
-  } else {
-    for (let r = 0; r <= last; r++) cols.push(renderRound(br, r, br.rounds[r], r === last ? "center" : "left", r));
-    container.style.gridTemplateColumns = `repeat(${cols.length}, auto)`;
-  }
-  cols.forEach(c => container.append(c));
+  const specs = columnSpecs(br, split);
+  specs.forEach((s, k) => container.append(renderRound(br, s, split ? Math.min(k, specs.length - 1 - k) : k)));
+  container.style.gridTemplateColumns = split
+    ? specs.map(s => s.side === "center" ? "minmax(180px, 1.15fr)" : "minmax(150px, 1fr)").join(" ")
+    : `repeat(${specs.length}, auto)`;
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "wires");
   svg.setAttribute("aria-hidden", "true");
   container.prepend(svg);
-  drawWires(container, br);
+  layoutBracket(container, br);
 }
 
 // Position relative to the canvas, ignoring CSS transforms (entrance animation).
@@ -675,6 +852,31 @@ function offsetIn(node, root) {
   let x = 0, y = 0, n = node;
   while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
   return { x, y, w: node.offsetWidth, h: node.offsetHeight };
+}
+
+// Play-In games sit right beside the slot they feed (no wall of empty byes).
+function positionPlayIns(container) {
+  container.querySelectorAll(".round--playin .round__matches").forEach(list => {
+    const lo = offsetIn(list, container);
+    const items = [...list.querySelectorAll(".matchup")].map(c => {
+      const i = +c.dataset.index;
+      const tgt = container.querySelector(`.matchup[data-round="1"][data-index="${i >> 1}"] [data-slot="${i & 1}"]`);
+      const t = tgt ? offsetIn(tgt, container) : null;
+      return { c, want: t ? t.y + t.h / 2 - lo.y - c.offsetHeight / 2 : 0 };
+    }).sort((a, b) => a.want - b.want);
+    let floor = 0;
+    items.forEach(({ c, want }) => {
+      const top = Math.max(want, floor);
+      c.style.top = top + "px";
+      floor = top + c.offsetHeight + 12;
+    });
+    list.style.minHeight = floor + "px";
+  });
+}
+
+function layoutBracket(container, br) {
+  positionPlayIns(container);
+  drawWires(container, br);
 }
 
 function drawWires(container, br) {
@@ -732,9 +934,44 @@ function drawWires(container, br) {
 }
 
 /* ============================================================
+   Test mode: ?test=N[&played=K|all]
+   N placeholder entries; K rounds filled with simulated votes.
+   ============================================================ */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function simulateVotes(entries, rounds, bracketName = "main", seed = 7) {
+  const rand = mulberry32(seed);
+  const rows = [];
+  for (let k = 0; k < rounds; k++) {
+    const br = buildBracket(entries, indexVotes(rows), bracketName);
+    if (!br.current) break;
+    const r = br.rounds.findIndex(ms => ms.some(m => !m.bye && !m.winner));
+    br.rounds[r].forEach(m => {
+      if (m.bye || m.winner || !m.slots[0] || !m.slots[1]) return;
+      let a = 4 + Math.floor(rand() * 18), b = 4 + Math.floor(rand() * 18);
+      const tie = rand() < 0.15;
+      if (tie) b = a;
+      const tbWinner = rand() < 0.5 ? 0 : 1;
+      [a, b].forEach((v, s) => rows.push({
+        id: m.slots[s].entry.id, bracket: bracketName, round: m.label, votes: v,
+        tiebreak: tie && s === tbWinner
+      }));
+    });
+  }
+  return rows;
+}
+
+/* ============================================================
    App state + boot
    ============================================================ */
-const App = { entries: [], main: null };
+const App = { entries: [], votes: [], main: null, notes: [] };
 
 function placeholderEntries(n) {
   return Array.from({ length: n }, (_, k) => ({
@@ -749,17 +986,46 @@ async function loadText(url) {
   return res.text();
 }
 
+function showNotice(text) {
+  App.notes.push(text);
+  const note = document.getElementById("data-notice");
+  note.textContent = App.notes.join(" ");
+  note.hidden = false;
+}
+
 async function loadData() {
+  const params = new URLSearchParams(location.search);
+  const testN = parseInt(params.get("test"), 10);
+  if (Number.isFinite(testN) && testN >= 2 && testN <= 64) {
+    App.entries = placeholderEntries(testN);
+    const playedRaw = params.get("played");
+    const played = playedRaw === "all" ? 99 : Math.max(0, parseInt(playedRaw, 10) || 0);
+    App.votes = simulateVotes(App.entries, played);
+    showNotice(`TEST MODE: ${testN} placeholder entries` +
+      (played ? `, ${playedRaw === "all" ? "every round" : played + " round(s)"} with simulated votes` : "") +
+      ". Remove ?test from the address to see the real data.");
+    return;
+  }
   try {
     App.entries = normalizeEntries(csvToObjects(await loadText("data/metaphors.csv")));
   } catch (err) {
     console.warn("Could not load data/metaphors.csv — using placeholders.", err);
     App.entries = placeholderEntries(15);
-    const note = document.getElementById("data-notice");
-    note.textContent = "Couldn't load data/metaphors.csv, so placeholder entries are shown. " +
-      "If you opened index.html straight from your computer, view it through GitHub Pages or a local web server instead.";
-    note.hidden = false;
+    showNotice("Couldn't load data/metaphors.csv, so placeholder entries are shown. " +
+      "If you opened index.html straight from your computer, view it through GitHub Pages or a local web server instead.");
   }
+  try {
+    App.votes = normalizeVotes(csvToObjects(await loadText("data/votes.csv")));
+  } catch (err) {
+    console.warn("Could not load data/votes.csv — no results yet.", err);
+    App.votes = [];
+  }
+}
+
+function bracketMeta(br) {
+  const shape = br.compact ? `${br.size / 2}-slot bracket + Play-In` : `${br.size}-slot bracket`;
+  const status = br.champion ? "Champion crowned!" : `Now playing: ${br.current}`;
+  return `${br.count} metaphors · ${shape} · ${status}`;
 }
 
 function renderAll() {
@@ -772,10 +1038,9 @@ function renderAll() {
     App.main = null;
     return;
   }
-  App.main = buildBracket(mainEntries);
-  const br = App.main;
-  meta.textContent = `${mainEntries.length} metaphors · ${br.size}-slot bracket · ${roundName(br.size)} up next`;
-  renderBracket(container, br);
+  App.main = buildBracket(mainEntries, indexVotes(App.votes), "main");
+  meta.textContent = bracketMeta(App.main);
+  renderBracket(container, App.main);
 }
 
 function refreshLayout() {
@@ -783,7 +1048,7 @@ function refreshLayout() {
   if (!App.main) return;
   const wantLayout = wantsSplit(App.main) ? "split" : "columns";
   if (container.dataset.layout !== wantLayout) renderBracket(container, App.main);
-  else drawWires(container, App.main);
+  else layoutBracket(container, App.main);
 }
 
 /* Start screen */
