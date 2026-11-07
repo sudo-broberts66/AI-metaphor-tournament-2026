@@ -1,6 +1,6 @@
 # Tournament of AI Metaphors
 
-*Think March Madness Meets Academic Analogies*
+*March Madness Meets Academic Analogies*
 
 A single-page bracket site for a class final project. Students' metaphors for AI compete in a
 single-elimination bracket. Votes are cast on paper each class; the instructor types the totals
