@@ -448,6 +448,87 @@ button.slot:focus-visible {
 }
 
 /* ============================================================
+   Scorekeeper (instructor only, ?scorekeeper)
+   ============================================================ */
+.local-badge {
+  display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+  margin: 12px auto 0; padding: 6px 12px; font-size: 13px; font-weight: 600;
+  color: var(--text); background: rgba(255,74,242,.14); border: 1px solid var(--magenta); border-radius: 999px;
+}
+.local-badge[hidden] { display: none; }
+.link-btn {
+  background: none; border: 0; padding: 2px 4px; cursor: pointer; font: inherit; font-weight: 700;
+  color: var(--yellow); text-decoration: underline; text-underline-offset: 3px; border-radius: 3px;
+}
+.link-btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+.sk-toggle {
+  position: fixed; right: 16px; bottom: 16px; z-index: 31;
+  font-family: var(--pixel); font-size: 10px; line-height: 1; letter-spacing: .06em;
+  padding: 12px 14px; cursor: pointer; color: #05071a; background: var(--magenta);
+  border: 0; border-radius: 4px; box-shadow: 0 0 18px rgba(255,74,242,.6);
+}
+.sk-toggle:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+.sk-toggle[hidden], body:not(.started) .sk-toggle { display: none; }
+
+.sk {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 30;
+  width: min(400px, 100vw); overflow-y: auto; overscroll-behavior: contain;
+  background: rgba(7, 9, 32, .97); border-left: 2px solid var(--magenta);
+  box-shadow: -10px 0 40px rgba(0,0,0,.5);
+  padding: 16px 16px 40px;
+}
+.sk[hidden], body:not(.started) .sk { display: none; }
+@media (min-width: 1100px) { body.sk-open .page { margin-right: 400px; } }
+.sk__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.sk h2 { margin: 0; font-family: var(--pixel); font-weight: 400; font-size: 13px; color: var(--magenta); letter-spacing: .06em; }
+.sk h3 { margin: 22px 0 10px; font-family: var(--pixel); font-weight: 400; font-size: 10px; color: var(--cyan); letter-spacing: .06em; }
+.sk h4 { margin: 0; font-family: var(--pixel); font-weight: 400; font-size: 9px; line-height: 1.5; color: var(--yellow); }
+.sk__status { min-height: 1.5em; margin: 0; font-size: 14px; color: var(--lime); }
+.sk__status.is-error { color: #ff9a9a; }
+.sk__hint { margin: 0 0 10px; font-size: 13px; color: var(--text-muted); }
+.sk-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 12px; cursor: pointer; font-size: 14px; font-weight: 700; line-height: 1.2;
+  color: var(--text); background: var(--panel-2); border: 2px solid var(--line); border-radius: 4px;
+}
+.sk-btn:hover:not(:disabled) { border-color: var(--cyan); }
+.sk-btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.sk-btn:disabled { cursor: not-allowed; opacity: .5; }
+.sk-btn--go { color: #05071a; background: var(--lime); border-color: var(--lime); }
+.sk-btn--go:hover:not(:disabled) { border-color: #fff; }
+.sk-btn:disabled, .sk-btn--go:disabled { opacity: 1; color: var(--text-muted); background: transparent; border-color: var(--line); border-style: dashed; }
+.sk-btn--small { padding: 6px 9px; font-size: 13px; }
+.sk-btn--danger { border-color: rgba(255,154,154,.6); }
+.sk-files { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sk-files .sk-btn { width: 100%; }
+
+.sk-round { margin-bottom: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.02); }
+.sk-round__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.sk-match { padding: 10px; margin-top: 8px; border: 1px solid var(--line); border-left: 3px solid var(--cyan); border-radius: 4px; background: var(--panel); }
+.sk-match.is-complete { border-left-color: var(--lime); }
+.sk-row { display: grid; grid-template-columns: 26px 1fr 72px; gap: 8px; align-items: center; }
+.sk-row + .sk-row { margin-top: 6px; }
+.sk-row .slot__seed { background: var(--cyan); }
+.sk-row__name { font-size: 14px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.sk-input {
+  width: 72px; padding: 8px 6px; text-align: right;
+  font-family: var(--pixel); font-size: 14px; color: var(--yellow);
+  background: #03040d; border: 2px solid var(--line); border-radius: 4px;
+}
+.sk-input:focus { outline: none; border-color: var(--yellow); box-shadow: 0 0 10px rgba(255,233,74,.4); }
+.sk-input[aria-invalid="true"] { border-color: #ff9a9a; }
+.sk-tie { margin-top: 10px; padding: 8px; border: 1px dashed var(--yellow); border-radius: 4px; }
+.sk-tie[hidden] { display: none; }
+.sk-tie p { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--yellow); }
+.sk-tie__btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sk-tie__btns .sk-btn { width: 100%; font-size: 13px; }
+.sk-tie__btns .sk-btn[aria-pressed="true"] { color: #05071a; background: var(--yellow); border-color: var(--yellow); }
+.sk-match__foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+.sk-empty { margin: 0; font-size: 14px; color: var(--text-muted); }
+.sk-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -539,6 +620,7 @@ button.slot:focus-visible {
     <h1>Tournament of <span class="ai">AI</span> Metaphors</h1>
     <p class="subtitle">Think March Madness Meets Academic Analogies</p>
     <p class="notice" id="data-notice" role="status" hidden></p>
+    <p class="local-badge" id="local-badge" hidden><span id="local-badge-text">Using local scores on this computer</span><button type="button" class="link-btn" id="local-reset">Reset to repo data</button></p>
   </header>
 
   <main>
@@ -558,6 +640,34 @@ button.slot:focus-visible {
     <p>Every metaphor earns a finish badge — they all made the bracket.</p>
   </footer>
 </div>
+
+<!-- Scorekeeper panel (only shown with ?scorekeeper) -->
+<button type="button" class="sk-toggle" id="sk-toggle" aria-controls="sk-panel" aria-expanded="true" hidden>SCOREKEEPER ◂</button>
+<aside class="sk" id="sk-panel" aria-labelledby="sk-title" hidden>
+  <div class="sk__head">
+    <h2 id="sk-title" tabindex="-1">Scorekeeper</h2>
+    <button type="button" class="sk-btn sk-btn--small" id="sk-collapse" aria-controls="sk-panel">Hide ▸</button>
+  </div>
+  <p class="sk__status" id="sk-status" role="status" aria-live="polite"></p>
+
+  <h3>Enter scores</h3>
+  <p class="sk__hint">Type each bucket count. Nothing shows on the bracket until you publish.</p>
+  <div id="sk-matches"></div>
+
+  <h3>Undo</h3>
+  <p class="sk__hint" id="sk-undo-hint"></p>
+  <button type="button" class="sk-btn" id="sk-undo">↶ Undo last publish</button>
+
+  <h3>Files</h3>
+  <div class="sk-files">
+    <button type="button" class="sk-btn sk-btn--go" id="sk-export">⬇ Export votes.csv</button>
+    <button type="button" class="sk-btn" id="sk-upload-votes">⬆ Upload votes.csv</button>
+    <button type="button" class="sk-btn" id="sk-upload-metaphors">⬆ Upload metaphors CSV</button>
+    <button type="button" class="sk-btn sk-btn--danger" id="sk-reset">⟲ Reset to repo data</button>
+  </div>
+  <input type="file" class="sk-file" id="sk-file-votes" accept=".csv,text/csv" tabindex="-1" aria-hidden="true">
+  <input type="file" class="sk-file" id="sk-file-metaphors" accept=".csv,text/csv" tabindex="-1" aria-hidden="true">
+</aside>
 
 <!-- Metaphor pop-up card -->
 <dialog class="card-dialog" id="card-dialog" aria-labelledby="card-title">
@@ -943,7 +1053,9 @@ function columnSpecs(br, split) {
 function wantsSplit(br) {
   const cols = columnSpecs(br, true).length;
   const need = cols * 150 + 30 + (cols - 1) * 18 + 32;
-  return window.innerWidth >= Math.max(need, 900);
+  const box = document.querySelector(".bracket-scroll");
+  const avail = box && box.clientWidth ? box.clientWidth + 32 : window.innerWidth;
+  return avail >= Math.max(need, 900);
 }
 
 function renderBracket(container, br) {
@@ -1225,6 +1337,429 @@ function setupCard() {
 }
 
 /* ============================================================
+   Scorekeeper mode (?scorekeeper)
+   ============================================================ */
+const SK = {
+  on: new URLSearchParams(location.search).has("scorekeeper"),
+  storeKey: "aimt.scorekeeper.v1",
+  persist: true,      // off in test mode
+  local: false,       // true while local data is in use
+  drafts: {},         // typed-but-unpublished scores
+  log: [],            // publish history, for Undo
+  open: true
+};
+
+function skRead() {
+  try { const raw = localStorage.getItem(SK.storeKey); return raw ? JSON.parse(raw) : null; }
+  catch (e) { return null; }
+}
+
+function skSave() {
+  if (!SK.on || !SK.persist) return;
+  try {
+    localStorage.setItem(SK.storeKey, JSON.stringify({
+      v: 1, savedAt: Date.now(), entries: App.entries, votes: App.votes, drafts: SK.drafts, log: SK.log
+    }));
+    SK.local = true;
+  } catch (e) {
+    console.warn("Could not save to localStorage", e);
+    skStatus("Couldn't save on this computer (storage is blocked). Export votes.csv to keep your work.", true);
+  }
+  updateLocalBadge();
+}
+
+function skClear() {
+  try { localStorage.removeItem(SK.storeKey); } catch (e) { /* ignore */ }
+  SK.local = false;
+}
+
+function updateLocalBadge() {
+  const badge = document.getElementById("local-badge");
+  if (!badge) return;
+  const show = SK.on && (SK.local || !SK.persist);
+  badge.hidden = !show;
+  document.getElementById("local-badge-text").textContent = SK.persist
+    ? "Using local scores on this computer"
+    : "Test mode: scores are not saved";
+}
+
+function skStatus(msg, isError = false) {
+  const s = document.getElementById("sk-status");
+  if (!s) return;
+  s.textContent = msg;
+  s.classList.toggle("is-error", isError);
+}
+
+function allBrackets() { return [App.main].filter(Boolean); }
+
+function bracketTitle(br) { return br.bracketName === "bonus" ? "Bonus" : "Main"; }
+
+function draftKey(br, m) {
+  return `${br.bracketName}|${m.label}|${m.index}|${m.slots[0].entry.id}|${m.slots[1].entry.id}`;
+}
+
+function readyMatchups(br) {
+  return br.rounds.flat().filter(m => !m.bye && m.slots[0] && m.slots[1] && !m.winner);
+}
+
+function parseCount(v) {
+  const t = String(v ?? "").trim();
+  return /^\d{1,4}$/.test(t) ? parseInt(t, 10) : null;
+}
+
+function draftFor(br, m) {
+  const key = draftKey(br, m);
+  if (!SK.drafts[key] && m.scored) SK.drafts[key] = { a: String(m.votes[0]), b: String(m.votes[1]), tb: null };
+  return SK.drafts[key] || { a: "", b: "", tb: null };
+}
+
+function draftState(d) {
+  const a = parseCount(d.a), b = parseCount(d.b);
+  const valid = a !== null && b !== null;
+  const tie = valid && a === b;
+  const complete = valid && (!tie || d.tb === 0 || d.tb === 1);
+  return { a, b, valid, tie, complete };
+}
+
+function sameVote(x, y) {
+  return x.bracket === y.bracket && x.id === y.id && roundKey(x.round) === roundKey(y.round);
+}
+
+/* ---------- Publish / Undo ---------- */
+function publishMatchups(items) {
+  const done = items.filter(({ d }) => draftState(d).complete);
+  if (!done.length) return [];
+  const entry = { title: "", added: [], replaced: [], drafts: {} };
+  done.forEach(({ br, m, d }) => {
+    const st = draftState(d);
+    const winner = st.tie ? d.tb : (st.a > st.b ? 0 : 1);
+    [st.a, st.b].forEach((v, k) => {
+      const row = { id: m.slots[k].entry.id, bracket: br.bracketName, round: m.label, votes: v, tiebreak: st.tie && winner === k };
+      entry.replaced.push(...App.votes.filter(x => sameVote(x, row)));
+      App.votes = App.votes.filter(x => !sameVote(x, row));
+      App.votes.push(row);
+      entry.added.push(row);
+    });
+    const key = draftKey(br, m);
+    entry.drafts[key] = { ...d };
+    delete SK.drafts[key];
+  });
+  const first = done[0];
+  entry.title = `${bracketTitle(first.br)} · ${first.m.label}: ` + (done.length === 1
+    ? `${first.m.slots[0].entry.metaphor} vs ${first.m.slots[1].entry.metaphor}`
+    : `${done.length} matchups`);
+  SK.log.push(entry);
+  skSave();
+  renderAll();
+  renderPanel();
+  skStatus(`Published ${entry.title}.`);
+  if (typeof onPublished === "function") onPublished(done.map(({ br, m }) => ({ bracket: br.bracketName, round: m.round, index: m.index })));
+  return done;
+}
+
+function undoLastPublish() {
+  const entry = SK.log.pop();
+  if (!entry) return;
+  App.votes = App.votes.filter(v => !entry.added.some(a => sameVote(a, v)));
+  App.votes.push(...entry.replaced);
+  Object.assign(SK.drafts, entry.drafts);
+  skSave();
+  renderAll();
+  renderPanel();
+  skStatus(`Undid ${entry.title}. The scores are back in the boxes to fix.`);
+}
+
+/* ---------- Files ---------- */
+function csvField(v) {
+  const s = String(v ?? "");
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function votesCSV() {
+  const lines = ["id,bracket,round,votes,tiebreak_win"];
+  const used = new Set();
+  const emit = (row, label) => {
+    used.add(row);
+    lines.push([row.id, row.bracket, label || row.round, row.votes, row.tiebreak ? "yes" : ""].map(csvField).join(","));
+  };
+  // Bracket order: round by round, matchup by matchup, with round names normalised.
+  allBrackets().forEach(br => br.rounds.forEach((ms, r) => ms.forEach(m => m.slots.forEach(s => {
+    if (!s || m.bye) return;
+    const row = App.votes.find(v => !used.has(v) && v.bracket === br.bracketName && v.id === s.entry.id &&
+      (roundKey(v.round) === roundKey(m.label) || String(v.round).trim() === String(r + 1)));
+    if (row) emit(row, m.label);
+  }))));
+  App.votes.filter(v => !used.has(v)).forEach(v => emit(v));   // anything left over is kept, not lost
+  return lines.join("\n") + "\n";
+}
+
+function downloadText(name, text) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function bracketSignature(entries, name) {
+  return entries.filter(e => e.bracket === name).map(e => e.id).join(",");
+}
+
+async function uploadMetaphors(file) {
+  let entries;
+  try { entries = normalizeEntries(csvToObjects(await file.text())); }
+  catch (e) { skStatus("Couldn't read that file.", true); return; }
+  if (!entries.length) { skStatus(`No metaphors found in ${file.name}. It needs id, bracket and metaphor columns.`, true); return; }
+  const ids = entries.map(e => e.id);
+  const dup = ids.find((id, k) => ids.indexOf(id) !== k);
+  if (dup) { skStatus(`Two rows share id ${dup}. Every id must be unique.`, true); return; }
+
+  const keep = ["main", "bonus"].filter(b => bracketSignature(entries, b) === bracketSignature(App.entries, b) && bracketSignature(entries, b));
+  const reset = ["main", "bonus"].filter(b => !keep.includes(b) && (bracketSignature(entries, b) || bracketSignature(App.entries, b)));
+  const counts = `${entries.filter(e => e.bracket === "main").length} main and ${entries.filter(e => e.bracket === "bonus").length} bonus`;
+  const msg = reset.length
+    ? `Load ${counts} entries from ${file.name}?\n\nThis resets the ${reset.join(" and ")} bracket and clears its scores on this computer.` +
+      (keep.length ? ` Scores in the ${keep.join(" and ")} bracket are kept.` : "")
+    : `Load ${counts} entries from ${file.name}?\n\nThe bracket entries are unchanged, so all scores are kept (names and explanations will update).`;
+  if (!confirm(msg)) return;
+
+  App.entries = entries;
+  App.votes = App.votes.filter(v => keep.includes(v.bracket));
+  SK.drafts = Object.fromEntries(Object.entries(SK.drafts).filter(([k]) => keep.includes(k.split("|")[0])));
+  SK.log = SK.log.filter(l => l.added.every(a => keep.includes(a.bracket)));
+  skSave();
+  renderAll();
+  renderPanel();
+  skStatus(`Loaded ${counts} entries.`);
+}
+
+async function uploadVotes(file) {
+  let rows;
+  try { rows = normalizeVotes(csvToObjects(await file.text())); }
+  catch (e) { skStatus("Couldn't read that file.", true); return; }
+  if (!confirm(`Replace the ${App.votes.length} published score rows on this computer with the ${rows.length} rows in ${file.name}?`)) return;
+  App.votes = rows;
+  SK.drafts = {};
+  SK.log = [];
+  skSave();
+  renderAll();
+  renderPanel();
+  skStatus(`Loaded ${rows.length} score rows from ${file.name}.`);
+}
+
+async function resetToRepo() {
+  if (!confirm("Clear everything saved on this computer and reload data/metaphors.csv and data/votes.csv from the repo?\n\nExport votes.csv first if you want to keep these scores.")) return;
+  skClear();
+  SK.drafts = {};
+  SK.log = [];
+  App.notes = [];
+  document.getElementById("data-notice").hidden = true;
+  await loadData({ ignoreLocal: true });
+  renderAll();
+  renderPanel();
+  updateLocalBadge();
+  skStatus("Reloaded the repo data.");
+}
+
+/* ---------- Panel UI ---------- */
+function setPanelOpen(open) {
+  SK.open = open;
+  document.getElementById("sk-panel").hidden = !open;
+  document.body.classList.toggle("sk-open", open);
+  const t = document.getElementById("sk-toggle");
+  t.hidden = open;
+  t.setAttribute("aria-expanded", String(open));
+  refreshLayout();
+}
+
+function renderPanel() {
+  if (!SK.on) return;
+  const host = document.getElementById("sk-matches");
+  // Keep focus on the same input across re-renders.
+  const active = document.activeElement;
+  const focusKey = active && active.closest && active.closest(".sk-match") ? [active.closest(".sk-match").dataset.key, active.dataset.role] : null;
+  host.innerHTML = "";
+
+  let any = false;
+  allBrackets().forEach(br => {
+    const ready = readyMatchups(br);
+    const byRound = new Map();
+    ready.forEach(m => { if (!byRound.has(m.round)) byRound.set(m.round, []); byRound.get(m.round).push(m); });
+    byRound.forEach((ms, r) => {
+      any = true;
+      const group = el("div", "sk-round");
+      group.dataset.bracket = br.bracketName;
+      group.dataset.round = r;
+      const head = el("div", "sk-round__head");
+      head.append(el("h4", null, `${bracketTitle(br)} · ${br.label(r)}`));
+      const pubRound = el("button", "sk-btn sk-btn--go sk-btn--small");
+      pubRound.type = "button";
+      pubRound.dataset.action = "publish-round";
+      head.append(pubRound);
+      group.append(head);
+      ms.forEach(m => group.append(renderDraftMatch(br, m)));
+      host.append(group);
+      updateRoundButton(group);
+    });
+  });
+  if (!any) host.append(el("p", "sk-empty", App.main && App.main.champion
+    ? "Every matchup is published. The tournament is complete!"
+    : "No matchups are ready to score yet."));
+
+  const undo = document.getElementById("sk-undo");
+  const lastEntry = SK.log[SK.log.length - 1];
+  undo.disabled = !lastEntry;
+  document.getElementById("sk-undo-hint").textContent = lastEntry ? `Last publish: ${lastEntry.title}` : "Nothing published on this computer yet.";
+
+  if (focusKey) {
+    const again = host.querySelector(`.sk-match[data-key="${CSS.escape(focusKey[0])}"] [data-role="${focusKey[1]}"]`);
+    if (again) again.focus();
+  }
+}
+
+function renderDraftMatch(br, m) {
+  const d = draftFor(br, m);
+  const box = el("div", "sk-match");
+  box.dataset.key = draftKey(br, m);
+  [0, 1].forEach(k => {
+    const s = m.slots[k];
+    const row = el("div", "sk-row");
+    row.append(el("span", "slot__seed", String(s.seed)), el("span", "sk-row__name", s.entry.metaphor));
+    const inp = el("input", "sk-input");
+    inp.type = "text";
+    inp.inputMode = "numeric";
+    inp.autocomplete = "off";
+    inp.maxLength = 4;
+    inp.value = k ? d.b : d.a;
+    inp.dataset.role = k ? "b" : "a";
+    inp.setAttribute("aria-label", `Votes for ${s.entry.metaphor} (seed ${s.seed}), ${m.label}`);
+    row.append(inp);
+    box.append(row);
+  });
+  const tie = el("div", "sk-tie");
+  tie.append(el("p", null, "Tie! Pick the winner"));
+  const btns = el("div", "sk-tie__btns");
+  [0, 1].forEach(k => {
+    const b = el("button", "sk-btn", m.slots[k].entry.metaphor);
+    b.type = "button";
+    b.dataset.action = "tiebreak";
+    b.dataset.pick = k;
+    b.setAttribute("aria-pressed", "false");
+    btns.append(b);
+  });
+  tie.append(btns);
+  box.append(tie);
+  const foot = el("div", "sk-match__foot");
+  const pub = el("button", "sk-btn sk-btn--small", "Publish this matchup");
+  pub.type = "button";
+  pub.dataset.action = "publish-one";
+  foot.append(pub);
+  box.append(foot);
+  updateDraftUI(box, d);
+  return box;
+}
+
+function updateDraftUI(box, d) {
+  const st = draftState(d);
+  box.querySelectorAll(".sk-input").forEach(inp => {
+    const bad = inp.value.trim() !== "" && parseCount(inp.value) === null;
+    inp.setAttribute("aria-invalid", String(bad));
+  });
+  const tie = box.querySelector(".sk-tie");
+  tie.hidden = !st.tie;
+  tie.querySelectorAll("[data-pick]").forEach(b => b.setAttribute("aria-pressed", String(st.tie && d.tb === +b.dataset.pick)));
+  box.classList.toggle("is-complete", st.complete);
+  box.querySelector('[data-action="publish-one"]').disabled = !st.complete;
+}
+
+function updateRoundButton(group) {
+  const boxes = [...group.querySelectorAll(".sk-match")];
+  const ready = boxes.filter(b => b.classList.contains("is-complete")).length;
+  const btn = group.querySelector('[data-action="publish-round"]');
+  btn.textContent = `Publish round (${ready}/${boxes.length})`;
+  btn.disabled = ready === 0;
+}
+
+function findDraftTarget(key) {
+  for (const br of allBrackets()) for (const m of readyMatchups(br)) if (draftKey(br, m) === key) return { br, m };
+  return null;
+}
+
+function setupScorekeeper() {
+  if (!SK.on) return;
+  document.getElementById("sk-panel").hidden = false;
+  document.getElementById("sk-toggle").addEventListener("click", () => {
+    setPanelOpen(true);
+    document.getElementById("sk-title").focus();
+  });
+  document.getElementById("sk-collapse").addEventListener("click", () => {
+    setPanelOpen(false);
+    document.getElementById("sk-toggle").focus();
+  });
+  document.body.classList.add("sk-open");
+
+  const host = document.getElementById("sk-matches");
+  host.addEventListener("input", e => {
+    const inp = e.target.closest(".sk-input");
+    if (!inp) return;
+    const box = inp.closest(".sk-match");
+    const key = box.dataset.key;
+    const d = SK.drafts[key] || (SK.drafts[key] = { a: "", b: "", tb: null });
+    d[inp.dataset.role] = inp.value.trim();
+    if (!draftState(d).tie) d.tb = null;
+    updateDraftUI(box, d);
+    updateRoundButton(box.closest(".sk-round"));
+    skSave();
+  });
+  host.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === "tiebreak") {
+      const box = btn.closest(".sk-match");
+      const d = SK.drafts[box.dataset.key];
+      if (!d) return;
+      d.tb = +btn.dataset.pick;
+      updateDraftUI(box, d);
+      updateRoundButton(box.closest(".sk-round"));
+      skSave();
+    } else if (action === "publish-one") {
+      const t = findDraftTarget(btn.closest(".sk-match").dataset.key);
+      if (t) publishMatchups([{ ...t, d: SK.drafts[draftKey(t.br, t.m)] || draftFor(t.br, t.m) }]);
+    } else if (action === "publish-round") {
+      const items = [...btn.closest(".sk-round").querySelectorAll(".sk-match.is-complete")]
+        .map(b => findDraftTarget(b.dataset.key)).filter(Boolean)
+        .map(t => ({ ...t, d: SK.drafts[draftKey(t.br, t.m)] || draftFor(t.br, t.m) }));
+      publishMatchups(items);
+    }
+  });
+
+  document.getElementById("sk-undo").addEventListener("click", undoLastPublish);
+  document.getElementById("sk-export").addEventListener("click", () => {
+    downloadText("votes.csv", votesCSV());
+    skStatus("Downloaded votes.csv. Replace data/votes.csv in the repo with it and push.");
+  });
+  const pick = (inputId, handler) => {
+    const inp = document.getElementById(inputId);
+    inp.addEventListener("change", async () => {
+      const f = inp.files && inp.files[0];
+      inp.value = "";
+      if (f) await handler(f);
+    });
+    return () => inp.click();
+  };
+  document.getElementById("sk-upload-votes").addEventListener("click", pick("sk-file-votes", uploadVotes));
+  document.getElementById("sk-upload-metaphors").addEventListener("click", pick("sk-file-metaphors", uploadMetaphors));
+  document.getElementById("sk-reset").addEventListener("click", resetToRepo);
+  document.getElementById("local-reset").addEventListener("click", resetToRepo);
+
+  updateLocalBadge();
+  renderPanel();
+  refreshLayout();
+}
+
+/* ============================================================
    Test mode: ?test=N[&played=K|all]
    N placeholder entries; K rounds filled with simulated votes.
    ============================================================ */
@@ -1284,10 +1819,11 @@ function showNotice(text) {
   note.hidden = false;
 }
 
-async function loadData() {
+async function loadData({ ignoreLocal = false } = {}) {
   const params = new URLSearchParams(location.search);
   const testN = parseInt(params.get("test"), 10);
   if (Number.isFinite(testN) && testN >= 2 && testN <= 64) {
+    SK.persist = false;
     App.entries = placeholderEntries(testN);
     const playedRaw = params.get("played");
     const played = playedRaw === "all" ? 99 : Math.max(0, parseInt(playedRaw, 10) || 0);
@@ -1296,6 +1832,18 @@ async function loadData() {
       (played ? `, ${playedRaw === "all" ? "every round" : played + " round(s)"} with simulated votes` : "") +
       ". Remove ?test from the address to see the real data.");
     return;
+  }
+  // Scorekeeper: this computer's saved work wins over the repo files.
+  if (SK.on && !ignoreLocal) {
+    const saved = skRead();
+    if (saved && Array.isArray(saved.entries)) {
+      App.entries = saved.entries;
+      App.votes = Array.isArray(saved.votes) ? saved.votes : [];
+      SK.drafts = saved.drafts || {};
+      SK.log = Array.isArray(saved.log) ? saved.log : [];
+      SK.local = true;
+      return;
+    }
   }
   try {
     App.entries = normalizeEntries(csvToObjects(await loadText("data/metaphors.csv")));
@@ -1379,6 +1927,7 @@ window.addEventListener("resize", () => {
   wireTracing(document.getElementById("main-bracket"));
   await loadData();
   renderAll();
+  setupScorekeeper();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshLayout);
 })();
 </script>
