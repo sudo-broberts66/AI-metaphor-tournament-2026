@@ -2262,15 +2262,21 @@ async function loadData({ ignoreLocal = false } = {}) {
     App.entries = placeholderEntries(testN);
     const bonusN = Math.min(32, Math.max(0, parseInt(params.get("bonus"), 10) || 0));
     const bonus = placeholderEntries(testN + bonusN).slice(testN).map(e => ({ ...e, bracket: "bonus" }));
-    const playedRaw = params.get("played");
-    const played = playedRaw === "all" ? 99 : Math.max(0, parseInt(playedRaw, 10) || 0);
+    // Forgiving: played=all / ALL / all/ / yes / (no value) all mean "every round".
+    const playedRaw = (params.get("played") || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const playedAll = params.has("played") && (["all", "yes", "true", ""].includes(playedRaw));
+    const played = playedAll ? 99 : Math.max(0, parseInt(playedRaw, 10) || 0);
     App.votes = simulateVotes(App.entries, played);
     if (bonus.length > 1) App.votes.push(...simulateVotes(bonus, played, "bonus", 11));
     App.entries.push(...bonus);
     showNotice(`TEST MODE: ${testN} placeholder entries` + (bonusN ? ` + ${bonusN} bonus` : "") +
-      (played ? `, ${playedRaw === "all" ? "every round" : played + " round(s)"} with simulated votes` : "") +
+      (played ? `, ${playedAll ? "every round" : played + " round(s)"} with simulated votes` : "") +
       ". Remove ?test from the address to see the real data.");
     return;
+  }
+  if (params.has("played") || params.has("bonus")) {
+    showNotice("Note: played= and bonus= only work in test mode, together with test=N " +
+      "(for example ?test=9&bonus=3&played=all). Showing the real data instead.");
   }
   // Scorekeeper: this computer's saved work wins over the repo files.
   if (SK.on && !ignoreLocal) {
