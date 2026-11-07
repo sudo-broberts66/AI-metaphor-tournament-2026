@@ -529,6 +529,69 @@ button.slot:focus-visible {
 .sk-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ============================================================
+   Power meters + reveal animations
+   ============================================================ */
+.slot.has-meter { padding-bottom: 13px; }
+.meter {
+  position: absolute; left: 40px; right: 8px; bottom: 5px; height: 5px;
+  background: rgba(255,255,255,.06); border-radius: 1px; overflow: hidden;
+}
+.meter__fill {
+  display: block; height: 100%; width: calc(var(--p, 0) * 100%);
+  background: var(--meter, var(--cyan));
+  /* arcade segments */
+  -webkit-mask-image: repeating-linear-gradient(to right, #000 0 6px, transparent 6px 8px);
+          mask-image: repeating-linear-gradient(to right, #000 0 6px, transparent 6px 8px);
+  box-shadow: 0 0 6px var(--meter, var(--cyan));
+}
+.slot[data-slot="1"] .meter__fill { --meter: var(--magenta); }
+
+.bracket-canvas .is-awaiting { opacity: 0 !important; }
+.is-revealing .advance-tag.is-hidden, .is-revealing .match-note.is-hidden { visibility: hidden; }
+.slot--advances.pop { animation: win-pulse .9s ease-out; }
+.slot--advances.pop .advance-tag { animation: tag-pop .45s cubic-bezier(.2,1.6,.4,1) both; }
+.arrive { animation: arrive .6s ease-out; }
+.wire.wire--flash {
+  opacity: 1 !important; stroke: #fff6b8; stroke-width: 3.5;
+  filter: drop-shadow(0 0 4px rgba(255,233,74,1)) drop-shadow(0 0 10px rgba(255,233,74,.7));
+  animation: tube-on .4s steps(1) both;
+}
+.ghost-slot {
+  background: var(--panel-2) !important; border-radius: 4px; pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--lime), 0 0 24px rgba(141,255,106,.7) !important;
+}
+.trophy.is-celebrating { animation: trophy-bounce 1s ease-in-out 3; }
+@keyframes win-pulse { 0% { box-shadow: inset 0 0 0 2px var(--lime), 0 0 0 rgba(141,255,106,0); } 40% { box-shadow: inset 0 0 0 2px var(--lime), 0 0 30px rgba(141,255,106,.9); } }
+@keyframes tag-pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes arrive { 0% { filter: brightness(2.2); } 100% { filter: none; } }
+@keyframes trophy-bounce { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-14px) scale(1.08); } 60% { transform: translateY(0); } }
+
+/* Champion fanfare */
+.fanfare {
+  position: fixed; inset: 0; z-index: 46; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(5,7,26,.55), rgba(5,7,26,.85));
+}
+.fanfare[hidden] { display: none; }
+.fanfare__box {
+  text-align: center; max-width: 820px; padding: 28px 24px 24px;
+  background: rgba(10,15,46,.95); border: 3px solid var(--yellow); border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--magenta), 0 0 60px rgba(255,233,74,.5);
+  animation: card-in .45s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.fanfare__hs {
+  margin: 0 0 16px; font-family: var(--pixel); font-size: clamp(18px, 4vw, 40px); line-height: 1.3; color: var(--yellow);
+  text-shadow: 0 0 10px var(--yellow), 4px 4px 0 var(--magenta);
+  animation: blink 0.8s steps(1) 4;
+}
+.fanfare__label { margin: 0 0 8px; font-family: var(--pixel); font-size: clamp(11px, 1.6vw, 14px); color: var(--cyan); letter-spacing: .1em; }
+.fanfare__name { margin: 0 0 20px; font-size: clamp(24px, 4.4vw, 46px); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.fanfare__btn { font-family: var(--pixel); font-size: 12px; padding: 12px 16px; }
+.confetti { position: fixed; inset: 0; z-index: 47; pointer-events: none; }
+
+/* Sound toggle */
+.sk-sound[aria-pressed="true"] { border-color: var(--lime); color: var(--lime); }
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -548,6 +611,10 @@ button.slot:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   body::after { display: none; }
   .court__grid { animation: none; }
+  .slot--advances.pop, .slot--advances.pop .advance-tag, .arrive, .trophy.is-celebrating { animation: none; }
+  .wire.wire--flash { animation: none; }
+  .fanfare__box { animation: fade-in .3s linear both; }
+  .fanfare__hs { animation: none; }
   .is-tracing .wire.is-lit, .is-tracing .slot.is-lit, .is-tracing .champion-plate.is-lit { animation: fade-in .2s linear both; animation-delay: 0s; }
   .card-dialog[open] .card { animation: fade-in .2s linear both; }
   .start__title { animation: none; }
@@ -654,6 +721,9 @@ button.slot:focus-visible {
   <p class="sk__hint">Type each bucket count. Nothing shows on the bracket until you publish.</p>
   <div id="sk-matches"></div>
 
+  <h3>Sound</h3>
+  <button type="button" class="sk-btn sk-sound" id="sk-sound" aria-pressed="false">🔇 Sound effects: Off</button>
+
   <h3>Undo</h3>
   <p class="sk__hint" id="sk-undo-hint"></p>
   <button type="button" class="sk-btn" id="sk-undo">↶ Undo last publish</button>
@@ -668,6 +738,16 @@ button.slot:focus-visible {
   <input type="file" class="sk-file" id="sk-file-votes" accept=".csv,text/csv" tabindex="-1" aria-hidden="true">
   <input type="file" class="sk-file" id="sk-file-metaphors" accept=".csv,text/csv" tabindex="-1" aria-hidden="true">
 </aside>
+
+<!-- Champion fanfare -->
+<div class="fanfare" id="fanfare" role="dialog" aria-modal="true" aria-labelledby="fanfare-hs" hidden>
+  <div class="fanfare__box">
+    <p class="fanfare__hs" id="fanfare-hs">NEW HIGH SCORE!</p>
+    <p class="fanfare__label" id="fanfare-label">TOURNAMENT CHAMPION</p>
+    <p class="fanfare__name" id="fanfare-name"></p>
+    <button type="button" class="sk-btn sk-btn--go fanfare__btn" id="fanfare-continue">CONTINUE ▶</button>
+  </div>
+</div>
 
 <!-- Metaphor pop-up card -->
 <dialog class="card-dialog" id="card-dialog" aria-labelledby="card-title">
@@ -954,6 +1034,16 @@ function renderSlot(slot, m, k) {
   led.append(el("span", "led__ghost", "8".repeat(Math.max(2, digits.length))));
   if (scored) led.append(el("span", "led__digits", digits.padStart(2, " ")));
   b.append(led);
+  if (scored) {
+    const total = m.votes[0] + m.votes[1];
+    const meter = el("span", "meter");
+    meter.setAttribute("aria-hidden", "true");
+    const fill = el("span", "meter__fill");
+    fill.style.setProperty("--p", total ? v / total : 0);
+    meter.append(fill);
+    b.append(meter);
+    b.classList.add("has-meter");
+  }
   if (advances) {
     const tag = el("span", "advance-tag", "ADVANCES ▶");
     tag.setAttribute("aria-hidden", "true");
@@ -1059,6 +1149,7 @@ function wantsSplit(br) {
 }
 
 function renderBracket(container, br) {
+  if (typeof cancelReveal === "function") cancelReveal();
   container.innerHTML = "";
   const split = wantsSplit(br);
   container.classList.toggle("is-split", split);
@@ -1736,6 +1827,12 @@ function setupScorekeeper() {
   });
 
   document.getElementById("sk-undo").addEventListener("click", undoLastPublish);
+  document.getElementById("sk-sound").addEventListener("click", e => {
+    Sound.on = !Sound.on;                       // muted every time the page loads
+    e.currentTarget.setAttribute("aria-pressed", String(Sound.on));
+    e.currentTarget.textContent = Sound.on ? "🔊 Sound effects: On" : "🔇 Sound effects: Off";
+    if (Sound.on) sfx.advance();
+  });
   document.getElementById("sk-export").addEventListener("click", () => {
     downloadText("votes.csv", votesCSV());
     skStatus("Downloaded votes.csv. Replace data/votes.csv in the repo with it and push.");
@@ -1757,6 +1854,275 @@ function setupScorekeeper() {
   updateLocalBadge();
   renderPanel();
   refreshLayout();
+}
+
+/* ============================================================
+   Reveal animations (Phase 5)
+   ============================================================ */
+const Anim = { token: 0 };
+const reduceMotion = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function containerFor(bracketName) {
+  return document.getElementById(bracketName === "bonus" ? "bonus-bracket" : "main-bracket");
+}
+function bracketByName(name) { return allBrackets().find(b => b.bracketName === name); }
+
+function cancelReveal() {
+  Anim.token++;
+  document.querySelectorAll(".ghost-slot").forEach(g => g.remove());
+}
+
+/* ---------- Sound (off by default; only via the scorekeeper toggle) ---------- */
+const Sound = { on: false, ctx: null, lastBlip: 0 };
+function tone(freq, start, dur, type = "square", vol = 0.05) {
+  if (!Sound.on) return;
+  try {
+    Sound.ctx = Sound.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const c = Sound.ctx, t = c.currentTime + start;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch (e) { /* audio unavailable */ }
+}
+const sfx = {
+  blip() { const n = performance.now(); if (n - Sound.lastBlip < 70) return; Sound.lastBlip = n; tone(880, 0, 0.03, "square", 0.025); },
+  advance() { [523, 659, 784].forEach((f, k) => tone(f, k * 0.09, 0.12)); },
+  fanfare() { [523, 659, 784, 1047, 0, 784, 1047].forEach((f, k) => f && tone(f, k * 0.14, k === 6 ? 0.6 : 0.16, "square", 0.06)); }
+};
+
+/* ---------- Hide the newly published results, then play them back ---------- */
+function revealTargets(br, container, item) {
+  const last = br.numRounds - 1;
+  const card = container.querySelector(`.matchup[data-round="${item.round}"][data-index="${item.index}"]`);
+  let target = null;
+  if (item.round === last) target = container.querySelector(".champion-plate");
+  else target = container.querySelector(`.matchup[data-round="${item.round + 1}"][data-index="${item.index >> 1}"] [data-slot="${item.index & 1}"]`);
+  const wireTo = item.round === last ? "champ" : `${item.round + 1}:${item.index >> 1}:${item.index & 1}`;
+  return { card, target, wireTo, isFinal: item.round === last };
+}
+
+function prepareReveal(items) {
+  items.forEach(item => {
+    const br = bracketByName(item.bracket), container = containerFor(item.bracket);
+    if (!br || !container) return;
+    const m = br.rounds[item.round][item.index];
+    const { card, target, isFinal } = revealTargets(br, container, item);
+    if (!card || !m.scored) return;
+    card.classList.add("is-revealing");
+    card.querySelectorAll("button.slot").forEach(s => {
+      const d = s.querySelector(".led__digits");
+      if (d) d.textContent = " 0";
+      const f = s.querySelector(".meter__fill");
+      if (f) f.style.setProperty("--p", 0);
+      if (s.classList.contains("slot--advances")) { s.classList.remove("slot--advances"); s.dataset.winner = "1"; }
+    });
+    card.querySelectorAll(".advance-tag, .match-note").forEach(n => n.classList.add("is-hidden"));
+    if (m.winner && target) target.classList.add("is-awaiting");
+    if (isFinal && m.winner) {
+      const t = container.querySelector(".trophy");
+      if (t) t.classList.remove("is-lit");
+    }
+  });
+}
+
+function countUp(card, m) {
+  const leds = [0, 1].map(k => card.querySelector(`[data-slot="${k}"] .led__digits`));
+  const fills = [0, 1].map(k => card.querySelector(`[data-slot="${k}"] .meter__fill`));
+  const [va, vb] = m.votes, total = va + vb;
+  const set = (a, b) => {
+    [a, b].forEach((v, k) => {
+      if (leds[k]) leds[k].textContent = String(v).padStart(2, " ");
+      if (fills[k]) fills[k].style.setProperty("--p", total ? v / total : 0);
+    });
+  };
+  if (reduceMotion()) { set(va, vb); return sleep(250); }
+  const dur = Math.min(2200, Math.max(900, 600 + Math.max(va, vb) * 55));
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    let prev = [-1, -1];
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      const a = Math.round(va * e), b = Math.round(vb * e);
+      if (a !== prev[0] || b !== prev[1]) { sfx.blip(); prev = [a, b]; }
+      set(a, b);
+      if (p < 1) requestAnimationFrame(step); else resolve();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+async function slideTo(src, dst) {
+  if (!dst) return;
+  if (reduceMotion() || !src || !src.animate) {
+    dst.classList.remove("is-awaiting");
+    dst.style.animation = "fade-in .35s linear both";
+    await sleep(350);
+    dst.style.animation = "";
+    return;
+  }
+  const a = src.getBoundingClientRect(), b = dst.getBoundingClientRect();
+  const ghost = src.cloneNode(true);
+  ghost.classList.add("ghost-slot");
+  ghost.removeAttribute("data-card");
+  ghost.removeAttribute("id");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.tabIndex = -1;
+  Object.assign(ghost.style, { position: "fixed", left: a.left + "px", top: a.top + "px", width: a.width + "px", height: a.height + "px", margin: "0", zIndex: 35 });
+  document.body.append(ghost);
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const anim = ghost.animate([
+    { transform: "translate(0,0) scale(1)" },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 22}px) scale(1.08)`, offset: 0.5 },
+    { transform: `translate(${dx}px, ${dy}px) scale(1)` }
+  ], { duration: 800, easing: "cubic-bezier(.5,0,.3,1)" });
+  try { await anim.finished; } catch (e) { /* cancelled */ }
+  ghost.remove();
+  dst.classList.remove("is-awaiting");
+  dst.classList.add("arrive");
+  setTimeout(() => dst.classList.remove("arrive"), 700);
+}
+
+function flashWire(container, wireTo) {
+  const w = container.querySelector(`.wire[data-to="${wireTo}"]`);
+  if (!w) return;
+  w.classList.add("wire--flash");
+  setTimeout(() => w.classList.remove("wire--flash"), 1500);
+}
+
+async function revealOne(item, token) {
+  const br = bracketByName(item.bracket), container = containerFor(item.bracket);
+  if (!br || !container) return;
+  const m = br.rounds[item.round][item.index];
+  const { card, target, wireTo, isFinal } = revealTargets(br, container, item);
+  if (!card || !m.scored) return;
+  if (container.dataset.layout === "columns") card.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "nearest", inline: "center" });
+
+  await countUp(card, m);
+  if (token !== Anim.token) return;
+  await sleep(reduceMotion() ? 100 : 350);
+  if (token !== Anim.token) return;
+
+  card.querySelectorAll(".match-note").forEach(n => n.classList.remove("is-hidden"));
+  if (!m.winner) { card.classList.remove("is-revealing"); return; }   // unresolved tie: nothing advances
+  const win = card.querySelector('button.slot[data-winner="1"]');
+  if (win) {
+    win.classList.add("slot--advances", "pop");
+    const tag = win.querySelector(".advance-tag");
+    if (tag) tag.classList.remove("is-hidden");
+    setTimeout(() => win.classList.remove("pop"), 1000);
+  }
+  sfx.advance();
+  await sleep(reduceMotion() ? 200 : 700);
+  if (token !== Anim.token) return;
+
+  await slideTo(win, target);
+  if (token !== Anim.token) return;
+  flashWire(container, wireTo);
+  card.classList.remove("is-revealing");
+  if (isFinal) await championMoment(br, container, token);
+}
+
+async function revealSequence(items, token) {
+  for (let k = 0; k < items.length; k++) {
+    if (token !== Anim.token) return;
+    await revealOne(items[k], token);
+    if (k < items.length - 1) await sleep(reduceMotion() ? 150 : 650);
+  }
+}
+
+// Called by the scorekeeper right after it publishes and re-renders.
+function onPublished(items) {
+  const token = Anim.token;
+  prepareReveal(items);
+  revealSequence(items, token);
+}
+
+/* ---------- Champion moment ---------- */
+function confetti(ms = 4500) {
+  if (reduceMotion()) return;
+  const cv = document.createElement("canvas");
+  cv.className = "confetti";
+  cv.setAttribute("aria-hidden", "true");
+  document.body.append(cv);
+  const ctx = cv.getContext("2d");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const resize = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+  resize();
+  const colors = ["#2ef6ff", "#ff4af2", "#ffe94a", "#8dff6a", "#ffffff"];
+  const trophy = document.querySelector(".trophy.is-lit, .trophy");
+  const origin = trophy ? trophy.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 };
+  const ox = origin.left + origin.width / 2, oy = origin.top + origin.height / 2;
+  const parts = [];
+  for (let i = 0; i < 140; i++) {           // burst from the trophy
+    const ang = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 7;
+    parts.push({ x: ox, y: oy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 4, s: 4 + Math.floor(Math.random() * 3) * 2, c: colors[i % colors.length], d: 0 });
+  }
+  for (let i = 0; i < 120; i++) {           // rain from the top
+    parts.push({ x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * 0.6, vx: (Math.random() - .5) * 1.5, vy: 2 + Math.random() * 3, s: 4 + Math.floor(Math.random() * 3) * 2, c: colors[i % colors.length], d: Math.random() * 600 });
+  }
+  const t0 = performance.now();
+  const frame = now => {
+    const t = now - t0;
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    ctx.globalAlpha = t > ms - 800 ? Math.max(0, (ms - t) / 800) : 1;
+    parts.forEach(p => {
+      if (t < p.d) return;
+      p.vy += 0.18; p.vx *= 0.99; p.x += p.vx; p.y += p.vy;
+      ctx.fillStyle = p.c;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);   // crisp pixel squares
+    });
+    if (t < ms) requestAnimationFrame(frame); else cv.remove();
+  };
+  requestAnimationFrame(frame);
+}
+
+function showFanfare(br) {
+  return new Promise(resolve => {
+    const box = document.getElementById("fanfare");
+    const champ = br.champion.entry;
+    document.getElementById("fanfare-label").textContent = br.bracketName === "bonus" ? "BONUS CHAMPION" : "TOURNAMENT CHAMPION";
+    document.getElementById("fanfare-name").textContent = champ.metaphor;
+    const prevFocus = document.activeElement;
+    box.hidden = false;
+    const btn = document.getElementById("fanfare-continue");
+    btn.focus({ preventScroll: true });
+    let timer = 0;
+    const close = () => {
+      clearTimeout(timer);
+      box.hidden = true;
+      btn.removeEventListener("click", close);
+      box.removeEventListener("keydown", onKey);
+      box.removeEventListener("click", onBackdrop);
+      if (prevFocus && document.contains(prevFocus)) prevFocus.focus({ preventScroll: true });
+      resolve();
+    };
+    const onKey = e => { if (e.key === "Escape") close(); };
+    const onBackdrop = e => { if (e.target === box) close(); };
+    btn.addEventListener("click", close);
+    box.addEventListener("keydown", onKey);
+    box.addEventListener("click", onBackdrop);
+    timer = setTimeout(close, 9000);
+  });
+}
+
+async function championMoment(br, container, token) {
+  const trophy = container.querySelector(".trophy");
+  if (trophy) {
+    trophy.classList.add("is-lit");
+    if (!reduceMotion()) trophy.classList.add("is-celebrating");
+    setTimeout(() => trophy.classList.remove("is-celebrating"), 3200);
+  }
+  sfx.fanfare();
+  confetti();
+  await sleep(reduceMotion() ? 200 : 900);
+  if (token !== Anim.token) return;
+  await showFanfare(br);
+  if (typeof onChampionDone === "function") onChampionDone(br);
 }
 
 /* ============================================================
