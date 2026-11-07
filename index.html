@@ -635,6 +635,68 @@ button.slot:focus-visible {
 .sk-round[data-bracket="bonus"] .sk-match.is-complete { border-left-color: var(--lime); }
 
 /* ============================================================
+   View toggle + Hall of Fame
+   ============================================================ */
+.view-toggle {
+  position: sticky; top: 10px; z-index: 20;
+  display: flex; justify-content: center; gap: 0; width: max-content; max-width: calc(100% - 32px);
+  margin: 6px auto 4px; padding: 4px; border-radius: 6px;
+  background: rgba(7, 9, 32, .92); border: 2px solid var(--yellow);
+  box-shadow: 0 0 18px rgba(255,233,74,.35), 0 6px 18px rgba(0,0,0,.5);
+}
+.view-toggle[hidden] { display: none; }
+.view-toggle button {
+  font-family: var(--pixel); font-size: clamp(9px, 1.1vw, 12px); line-height: 1.3; letter-spacing: .04em;
+  padding: 11px 14px; cursor: pointer; color: var(--text); background: transparent; border: 0; border-radius: 3px;
+}
+.view-toggle button[aria-pressed="true"] { color: #05071a; background: var(--yellow); }
+.view-toggle button:hover:not([aria-pressed="true"]) { background: rgba(255,233,74,.12); }
+.view-toggle button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+
+.hall { padding: 18px 16px 40px; }
+.hall[hidden], #bracket-view[hidden] { display: none; }
+.hall__banner {
+  margin: 0 auto 6px; text-align: center; font-family: var(--pixel);
+  font-size: clamp(18px, 3.4vw, 36px); line-height: 1.3; color: var(--yellow);
+  text-shadow: 0 0 10px rgba(255,233,74,.8), 4px 4px 0 var(--magenta);
+}
+.hall__banner:focus { outline: none; }
+.hall__meta { margin: 0 0 22px; text-align: center; color: var(--text-muted); font-size: 15px; }
+.hall__grid {
+  list-style: none; margin: 0 auto; padding: 0; max-width: 1500px;
+  display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); grid-auto-rows: 1fr;
+}
+.hall__grid li { display: flex; }
+.hof-tile {
+  position: relative; flex: 1; display: grid; grid-template-columns: 58px 1fr; grid-template-rows: 1fr auto;
+  gap: 8px 12px; align-items: start; text-align: left; cursor: pointer;
+  padding: 14px 14px 12px; color: var(--text);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 2px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.hof-tile:hover { border-color: var(--cyan); box-shadow: 0 0 18px rgba(46,246,255,.35); transform: translateY(-2px); }
+.hof-tile:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+.hof-tile.is-bonus { border-color: rgba(255,154,60,.55); }
+.hof-tile.is-bonus .hof-tile__name { padding-right: 44px; }
+.hof-tile.is-champion { border-color: var(--yellow); box-shadow: 0 0 22px rgba(255,233,74,.35); }
+.hof-tile svg.hof-art { grid-row: 1 / span 2; width: 58px; height: 58px; background: #03040d; border: 2px solid var(--line); border-radius: 6px; padding: 4px; image-rendering: pixelated; }
+.hof-tile__name {
+  font-size: 16px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hof-tile .badge { margin: 0; justify-self: start; align-self: end; font-size: 9px; padding: 6px 8px 5px; }
+.hof-tile__crown { position: absolute; top: -14px; left: 18px; width: 30px; height: auto; filter: drop-shadow(0 0 6px rgba(255,233,74,.9)); }
+.hof-tile__tag {
+  position: absolute; top: 8px; right: 8px; font-family: var(--pixel); font-size: 7px; letter-spacing: .06em;
+  color: #05071a; background: #ff9a3c; padding: 3px 4px; border-radius: 2px;
+}
+.hall.is-entering .hall__grid li { animation: tile-in .45s cubic-bezier(.2,.9,.3,1.2) both; animation-delay: calc(var(--i, 0) * 45ms + 150ms); }
+.hall.is-entering .hall__banner { animation: pop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes tile-in { from { opacity: 0; transform: translateY(18px) scale(.94); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -658,6 +720,8 @@ button.slot:focus-visible {
   .wire.wire--flash { animation: none; }
   .fanfare__box { animation: fade-in .3s linear both; }
   .fanfare__hs { animation: none; }
+  .hall.is-entering .hall__grid li, .hall.is-entering .hall__banner { animation: fade-in .4s linear both; animation-delay: 0s; }
+  .hof-tile:hover { transform: none; }
   .is-tracing .wire.is-lit, .is-tracing .slot.is-lit, .is-tracing .champion-plate.is-lit { animation: fade-in .2s linear both; animation-delay: 0s; }
   .card-dialog[open] .card { animation: fade-in .2s linear both; }
   .start__title { animation: none; }
@@ -722,6 +786,12 @@ button.slot:focus-visible {
       <rect x="7" y="3" width="2" height="3" fill="#ff4af2"/>
       <rect x="6" y="4" width="4" height="1" fill="#ff4af2"/>
     </g>
+    <g id="pixel-crown">
+      <rect x="1" y="2" width="1" height="1" fill="#ffe94a"/><rect x="5" y="1" width="1" height="1" fill="#ffe94a"/><rect x="9" y="2" width="1" height="1" fill="#ffe94a"/>
+      <rect x="1" y="3" width="2" height="1" fill="#ffe94a"/><rect x="4" y="2" width="3" height="2" fill="#ffe94a"/><rect x="8" y="3" width="2" height="1" fill="#ffe94a"/>
+      <rect x="1" y="4" width="9" height="2" fill="#ffe94a"/><rect x="5" y="4" width="1" height="1" fill="#ff4af2"/>
+      <rect x="1" y="6" width="9" height="1" fill="#e9c500"/>
+    </g>
   </defs>
 </svg>
 
@@ -734,6 +804,18 @@ button.slot:focus-visible {
   </header>
 
   <main>
+    <div class="view-toggle" id="view-toggle" role="group" aria-label="Choose a view" hidden>
+      <button type="button" id="view-hall" aria-pressed="false">♛ Hall of Fame</button>
+      <button type="button" id="view-bracket" aria-pressed="true">Completed Bracket</button>
+    </div>
+
+    <section class="hall" id="hall" aria-labelledby="hall-heading" hidden>
+      <h2 class="hall__banner" id="hall-heading" tabindex="-1">★ Hall of Fame ★</h2>
+      <p class="hall__meta" id="hall-meta"></p>
+      <ul class="hall__grid" id="hall-grid"></ul>
+    </section>
+
+    <div id="bracket-view">
     <section class="bracket-section" aria-labelledby="main-bracket-heading">
       <div class="section-head">
         <h2 id="main-bracket-heading" tabindex="-1">Main Bracket</h2>
@@ -762,6 +844,7 @@ button.slot:focus-visible {
         <div class="bracket-canvas" id="bonus-bracket"></div>
       </div>
     </section>
+    </div>
   </main>
 
   <footer class="page-footer">
@@ -1413,6 +1496,16 @@ function historyText(f) {
     : `${h.round}: ${h.votes}–${h.opp}${h.tiebreak ? " (tiebreak)" : ""}`).join(" · ");
 }
 
+// Neutral finish badge for any metaphor (never "lost" / "eliminated").
+function badgeInfo(f) {
+  if (f && f.badge) {
+    const champ = /Champion/.test(f.badge);
+    return { text: (champ ? "♛ " : "") + f.badge, cls: champ ? "badge--champion" : f.badge === "Finalist" ? "badge--finalist" : "", champ };
+  }
+  if (f && f.reached) return { text: `Still in · ${f.reached}`, cls: "badge--live", champ: false };
+  return { text: "Bonus Entry", cls: "", champ: false };
+}
+
 const Card = { opener: null, openId: null };
 
 function openCard(id, opener) {
@@ -1431,17 +1524,9 @@ function openCard(id, opener) {
   document.getElementById("card-title").textContent = entry.metaphor;
 
   const badge = document.getElementById("card-badge");
-  badge.className = "badge";
-  if (f && f.badge) {
-    badge.textContent = (/Champion/.test(f.badge) ? "♛ " : "") + f.badge;
-    if (/Champion/.test(f.badge)) badge.classList.add("badge--champion");
-    if (f.badge === "Finalist") badge.classList.add("badge--finalist");
-  } else if (f && f.reached) {
-    badge.textContent = `Still in · ${f.reached}`;
-    badge.classList.add("badge--live");
-  } else {
-    badge.textContent = "Bonus Entry";
-  }
+  const bi = badgeInfo(f);
+  badge.className = "badge" + (bi.cls ? " " + bi.cls : "");
+  badge.textContent = bi.text;
 
   const hist = document.getElementById("card-history");
   hist.textContent = historyText(f);
@@ -1988,6 +2073,10 @@ function prepareReveal(items) {
     if (isFinal && m.winner) {
       const t = container.querySelector(".trophy");
       if (t) t.classList.remove("is-lit");
+      // No spoilers before the reveal: hold the "crowned" line and the Hall of Fame toggle.
+      const meta = document.getElementById(item.bracket === "bonus" ? "bonus-bracket-meta" : "main-bracket-meta");
+      if (meta) { meta.dataset.after = meta.textContent; meta.textContent = meta.textContent.replace(/(Bonus c|C)hampion crowned!/, "Now playing: Championship"); }
+      if (item.bracket === "main" && typeof View !== "undefined") { View.holdToggle = true; document.getElementById("view-toggle").hidden = true; }
     }
   });
 }
@@ -2106,6 +2195,8 @@ async function revealSequence(items, token) {
 
 // Called by the scorekeeper right after it publishes and re-renders.
 function onPublished(items) {
+  // Reveals happen on the bracket, so leave the Hall of Fame if it is showing.
+  if (typeof View !== "undefined" && View.mode !== "bracket") setView("bracket");
   const token = Anim.token;
   prepareReveal(items);
   revealSequence(items, token);
@@ -2188,10 +2279,107 @@ async function championMoment(br, container, token) {
   }
   sfx.fanfare();
   confetti(4500, trophy);
+  const meta = document.getElementById(br.bracketName === "bonus" ? "bonus-bracket-meta" : "main-bracket-meta");
+  if (meta && meta.dataset.after) { meta.textContent = meta.dataset.after; delete meta.dataset.after; }
   await sleep(reduceMotion() ? 200 : 900);
   if (token !== Anim.token) return;
   await showFanfare(br);
   if (typeof onChampionDone === "function") onChampionDone(br);
+}
+
+/* ============================================================
+   Hall of Fame + view toggle (Phase 7)
+   ============================================================ */
+const View = { mode: "bracket", holdToggle: false };
+
+function tournamentOver() { return !!(App.main && App.main.champion); }
+
+function setView(mode, { animate = false, focus = false } = {}) {
+  if (mode === "hall" && !tournamentOver()) mode = "bracket";
+  View.mode = mode;
+  document.getElementById("bracket-view").hidden = mode !== "bracket";
+  document.getElementById("hall").hidden = mode !== "hall";
+  document.getElementById("view-hall").setAttribute("aria-pressed", String(mode === "hall"));
+  document.getElementById("view-bracket").setAttribute("aria-pressed", String(mode === "bracket"));
+  if (mode === "hall") renderHall(animate);
+  else refreshLayout();          // brackets were hidden, so re-measure the wires
+  if (focus) document.getElementById(mode === "hall" ? "hall-heading" : "main-bracket-heading").focus({ preventScroll: true });
+  if (focus) window.scrollTo({ top: 0, behavior: reduceMotion() ? "auto" : "smooth" });
+}
+
+function updateViewToggle() {
+  const over = tournamentOver();
+  document.getElementById("view-toggle").hidden = !over || View.holdToggle;
+  if (!over && View.mode === "hall") setView("bracket");
+  else if (View.mode === "hall") renderHall(false);
+}
+
+function hallEntries() {
+  const list = [];
+  if (App.main) App.main.entries.forEach((e, k) => list.push({ e, br: App.main, seed: k + 1 }));
+  const bonus = App.entries.filter(e => e.bracket === "bonus");
+  bonus.forEach((e, k) => list.push({ e, br: App.bonus, seed: App.bonus ? k + 1 : null }));
+  return list;
+}
+
+function renderHall(animate) {
+  const grid = document.getElementById("hall-grid");
+  const hall = document.getElementById("hall");
+  const items = hallEntries();
+  const nMain = items.filter(x => x.e.bracket === "main").length, nBonus = items.length - nMain;
+  document.getElementById("hall-meta").textContent =
+    `${items.length} metaphors${nBonus ? ` (${nMain} main + ${nBonus} bonus)` : ""} · every one earned its spot. Tap any tile to read it.`;
+  grid.innerHTML = "";
+  items.forEach(({ e, br }, k) => {
+    const f = br ? br.finishes.get(e.id) : null;
+    const bi = badgeInfo(f);
+    const li = el("li");
+    li.style.setProperty("--i", k);
+    const tile = el("button", "hof-tile" + (e.bracket === "bonus" ? " is-bonus" : "") + (bi.champ ? " is-champion" : ""));
+    tile.type = "button";
+    tile.dataset.card = "";
+    tile.dataset.id = e.id;
+    tile.setAttribute("aria-label", `${e.metaphor}. ${bi.text.replace("♛ ", "")}${e.bracket === "bonus" ? ", bonus stage" : ""}. Open its explanation`);
+    const art = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    art.setAttribute("viewBox", "0 0 7 7");
+    art.setAttribute("class", "hof-art");
+    art.setAttribute("shape-rendering", "crispEdges");
+    art.setAttribute("aria-hidden", "true");
+    drawPortrait(art, e.id + "|" + e.metaphor);
+    tile.append(art, el("span", "hof-tile__name", e.metaphor));
+    const badge = el("span", "badge" + (bi.cls ? " " + bi.cls : ""), bi.text);
+    tile.append(badge);
+    if (bi.champ) {
+      const crown = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      crown.setAttribute("viewBox", "0 0 11 8");
+      crown.setAttribute("class", "hof-tile__crown");
+      crown.setAttribute("shape-rendering", "crispEdges");
+      crown.setAttribute("aria-hidden", "true");
+      crown.innerHTML = '<use href="#pixel-crown"/>';
+      tile.append(crown);
+    }
+    if (e.bracket === "bonus") {
+      const tag = el("span", "hof-tile__tag", "BONUS");
+      tag.setAttribute("aria-hidden", "true");
+      tile.append(tag);
+    }
+    li.append(tile);
+    grid.append(li);
+  });
+  hall.classList.remove("is-entering");
+  if (animate) { void hall.offsetWidth; hall.classList.add("is-entering"); setTimeout(() => hall.classList.remove("is-entering"), 400 + items.length * 45 + 600); }
+}
+
+// After the main champion's fanfare, roll straight into the Hall of Fame.
+function onChampionDone(br) {
+  View.holdToggle = false;
+  updateViewToggle();
+  if (br.bracketName === "main") setView("hall", { animate: true, focus: true });
+}
+
+function setupViews() {
+  document.getElementById("view-hall").addEventListener("click", () => setView("hall", { animate: true }));
+  document.getElementById("view-bracket").addEventListener("click", () => setView("bracket"));
 }
 
 /* ============================================================
@@ -2321,12 +2509,16 @@ function renderAll() {
     meta.textContent = mainEntries.length ? "Waiting for at least 2 entries." : "No entries yet.";
     App.main = null;
     renderBonus();
+    View.holdToggle = false;
+    updateViewToggle();
     return;
   }
   App.main = buildBracket(mainEntries, indexVotes(App.votes), "main");
   meta.textContent = bracketMeta(App.main);
   renderBracket(container, App.main);
   renderBonus();
+  View.holdToggle = false;
+  updateViewToggle();
 }
 
 // Late entries never join the main bracket: 2+ get their own bracket, 1 gets a showcase card.
@@ -2381,10 +2573,11 @@ function startGame() {
   const page = document.getElementById("page");
   document.body.classList.add("started");
   page.classList.add("is-entering");
+  if (View.mode === "hall") renderHall(true);
   start.classList.add("is-leaving");
   const done = () => {
     start.hidden = true;
-    document.getElementById("main-bracket-heading").focus({ preventScroll: true });
+    document.getElementById(View.mode === "hall" ? "hall-heading" : "main-bracket-heading").focus({ preventScroll: true });
   };
   start.addEventListener("animationend", done, { once: true });
   setTimeout(() => { if (!start.hidden) done(); }, 900);   // safety net
@@ -2411,6 +2604,8 @@ window.addEventListener("resize", () => {
   await loadData();
   renderAll();
   setupScorekeeper();
+  setupViews();
+  if (tournamentOver()) setView("hall");
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshLayout);
 })();
 </script>
