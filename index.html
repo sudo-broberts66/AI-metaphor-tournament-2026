@@ -592,6 +592,49 @@ button.slot:focus-visible {
 .sk-sound[aria-pressed="true"] { border-color: var(--lime); color: var(--lime); }
 
 /* ============================================================
+   Bonus bracket: same rules, its own neon (orange + violet)
+   ============================================================ */
+.bonus-section {
+  --cyan: #ff9a3c; --magenta: #c49bff;
+  margin: 10px 16px 0; padding-top: 28px;
+  border-top: 2px dashed rgba(255,154,60,.55);
+}
+.bonus-section[hidden] { display: none; }
+.stage-tag {
+  margin: 0 auto 10px; width: max-content; max-width: 100%;
+  font-family: var(--pixel); font-size: clamp(12px, 1.6vw, 16px); line-height: 1.4; letter-spacing: .08em;
+  color: #05071a; background: var(--cyan); padding: 8px 12px; border-radius: 3px;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--magenta), 0 0 22px rgba(255,154,60,.6);
+}
+.bonus-section .section-head h2 { color: var(--cyan); text-shadow: 0 0 8px rgba(255,154,60,.6); }
+.bonus-section .round--left  .matchup { border-color: rgba(255,154,60,.5); }
+.bonus-section .round--right .matchup { border-color: rgba(196,155,255,.5); }
+.bonus-section .wire--left  { filter: drop-shadow(0 0 3px rgba(255,154,60,.8)); }
+.bonus-section .wire--right { filter: drop-shadow(0 0 3px rgba(196,155,255,.8)); }
+.bonus-section .bracket-scroll { padding-left: 0; padding-right: 0; }
+
+/* One late entry: a showcase card instead of a bracket */
+.showcase {
+  display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: center;
+  width: min(460px, 100%); margin: 6px auto 0; padding: 16px; cursor: pointer; text-align: left;
+  color: var(--text); background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 2px solid var(--cyan); border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--magenta), 0 0 26px rgba(255,154,60,.35);
+}
+.showcase[hidden] { display: none; }
+.showcase:hover { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--magenta), 0 0 36px rgba(255,154,60,.6); }
+.showcase:focus-visible { outline: 3px solid var(--yellow); outline-offset: 6px; }
+.showcase svg { width: 100%; height: auto; display: block; background: #03040d; border: 2px solid var(--line); border-radius: 6px; padding: 6px; image-rendering: pixelated; }
+.showcase__label { display: block; font-family: var(--pixel); font-size: 10px; color: var(--cyan); letter-spacing: .08em; margin-bottom: 8px; }
+.showcase__name { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.showcase__cta { display: block; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--text-muted); }
+
+.sk-round[data-bracket="bonus"] { border-color: rgba(255,154,60,.6); }
+.sk-round[data-bracket="bonus"] h4 { color: #ff9a3c; }
+.sk-round[data-bracket="bonus"] .sk-match { border-left-color: #ff9a3c; }
+.sk-round[data-bracket="bonus"] .sk-match.is-complete { border-left-color: var(--lime); }
+
+/* ============================================================
    Entrance animation (after PRESS START)
    ============================================================ */
 .is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -698,6 +741,25 @@ button.slot:focus-visible {
       </div>
       <div class="bracket-scroll">
         <div class="bracket-canvas" id="main-bracket"></div>
+      </div>
+    </section>
+
+    <section class="bracket-section bonus-section" id="bonus-section" aria-labelledby="bonus-bracket-heading" hidden>
+      <p class="stage-tag" aria-hidden="true">★ BONUS STAGE ★</p>
+      <div class="section-head">
+        <h2 id="bonus-bracket-heading">Bonus Bracket</h2>
+        <p class="section-meta" id="bonus-bracket-meta"></p>
+      </div>
+      <button type="button" class="showcase" id="bonus-showcase" data-card="" hidden>
+        <svg viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true" id="bonus-showcase-art"></svg>
+        <span>
+          <span class="showcase__label">BONUS ENTRY</span>
+          <span class="showcase__name" id="bonus-showcase-name"></span>
+          <span class="showcase__cta">Read the explanation ▶</span>
+        </span>
+      </button>
+      <div class="bracket-scroll" id="bonus-scroll">
+        <div class="bracket-canvas" id="bonus-bracket"></div>
       </div>
     </section>
   </main>
@@ -1140,10 +1202,10 @@ function columnSpecs(br, split) {
 }
 
 // Split layout needs room for every column; otherwise use scrolling columns.
-function wantsSplit(br) {
+function wantsSplit(br, container) {
   const cols = columnSpecs(br, true).length;
   const need = cols * 150 + 30 + (cols - 1) * 18 + 32;
-  const box = document.querySelector(".bracket-scroll");
+  const box = (container && container.closest(".bracket-scroll")) || document.querySelector(".bracket-scroll");
   const avail = box && box.clientWidth ? box.clientWidth + 32 : window.innerWidth;
   return avail >= Math.max(need, 900);
 }
@@ -1151,12 +1213,13 @@ function wantsSplit(br) {
 function renderBracket(container, br) {
   if (typeof cancelReveal === "function") cancelReveal();
   container.innerHTML = "";
-  const split = wantsSplit(br);
+  const split = wantsSplit(br, container);
   container.classList.toggle("is-split", split);
   container.classList.toggle("is-columns", !split);
   container.dataset.layout = split ? "split" : "columns";
   const specs = columnSpecs(br, split);
   specs.forEach((s, k) => container.append(renderRound(br, s, split ? Math.min(k, specs.length - 1 - k) : k)));
+  container.style.maxWidth = split ? Math.min(1680, specs.length * 290) + "px" : "";
   container.style.gridTemplateColumns = split
     ? specs.map(s => s.side === "center" ? "minmax(180px, 1.15fr)" : "minmax(150px, 1fr)").join(" ")
     : `repeat(${specs.length}, auto)`;
@@ -1261,7 +1324,7 @@ function drawWires(container, br) {
    ============================================================ */
 const Trace = { hoverId: null, focusId: null };
 
-function bracketFor(container) { return container.id === "main-bracket" ? App.main : null; }
+function bracketFor(container) { return container.id === "main-bracket" ? App.main : container.id === "bonus-bracket" ? App.bonus : null; }
 
 function highlightPath(container, id) {
   const br = bracketFor(container);
@@ -1334,7 +1397,7 @@ function drawPortrait(svg, key) {
 }
 
 function findEntry(id) {
-  for (const br of [App.main]) {
+  for (const br of [App.main, App.bonus]) {
     if (!br) continue;
     const k = br.entries.findIndex(e => e.id === id);
     if (k >= 0) return { entry: br.entries[k], br, seed: k + 1 };
@@ -1481,7 +1544,7 @@ function skStatus(msg, isError = false) {
   s.classList.toggle("is-error", isError);
 }
 
-function allBrackets() { return [App.main].filter(Boolean); }
+function allBrackets() { return [App.main, App.bonus].filter(Boolean); }
 
 function bracketTitle(br) { return br.bracketName === "bonus" ? "Bonus" : "Main"; }
 
@@ -1694,7 +1757,7 @@ function renderPanel() {
       updateRoundButton(group);
     });
   });
-  if (!any) host.append(el("p", "sk-empty", App.main && App.main.champion
+  if (!any) host.append(el("p", "sk-empty", allBrackets().length && allBrackets().every(b => b.champion)
     ? "Every matchup is published. The tournament is complete!"
     : "No matchups are ready to score yet."));
 
@@ -2000,7 +2063,13 @@ async function revealOne(item, token) {
   const m = br.rounds[item.round][item.index];
   const { card, target, wireTo, isFinal } = revealTargets(br, container, item);
   if (!card || !m.scored) return;
-  if (container.dataset.layout === "columns") card.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "nearest", inline: "center" });
+  // Bring the matchup on screen (e.g. the bonus bracket below the fold, or a narrow screen).
+  const rc = card.getBoundingClientRect();
+  if (rc.top < 0 || rc.bottom > innerHeight || rc.left < 0 || rc.right > innerWidth) {
+    card.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "center", inline: "center" });
+    await sleep(reduceMotion() ? 50 : 600);
+    if (token !== Anim.token) return;
+  }
 
   await countUp(card, m);
   if (token !== Anim.token) return;
@@ -2043,7 +2112,7 @@ function onPublished(items) {
 }
 
 /* ---------- Champion moment ---------- */
-function confetti(ms = 4500) {
+function confetti(ms = 4500, from = null) {
   if (reduceMotion()) return;
   const cv = document.createElement("canvas");
   cv.className = "confetti";
@@ -2054,7 +2123,7 @@ function confetti(ms = 4500) {
   const resize = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
   resize();
   const colors = ["#2ef6ff", "#ff4af2", "#ffe94a", "#8dff6a", "#ffffff"];
-  const trophy = document.querySelector(".trophy.is-lit, .trophy");
+  const trophy = from || document.querySelector(".trophy.is-lit, .trophy");
   const origin = trophy ? trophy.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 3, width: 0, height: 0 };
   const ox = origin.left + origin.width / 2, oy = origin.top + origin.height / 2;
   const parts = [];
@@ -2118,7 +2187,7 @@ async function championMoment(br, container, token) {
     setTimeout(() => trophy.classList.remove("is-celebrating"), 3200);
   }
   sfx.fanfare();
-  confetti();
+  confetti(4500, trophy);
   await sleep(reduceMotion() ? 200 : 900);
   if (token !== Anim.token) return;
   await showFanfare(br);
@@ -2163,7 +2232,7 @@ function simulateVotes(entries, rounds, bracketName = "main", seed = 7) {
 /* ============================================================
    App state + boot
    ============================================================ */
-const App = { entries: [], votes: [], main: null, notes: [] };
+const App = { entries: [], votes: [], main: null, bonus: null, notes: [] };
 
 function placeholderEntries(n) {
   return Array.from({ length: n }, (_, k) => ({
@@ -2191,10 +2260,14 @@ async function loadData({ ignoreLocal = false } = {}) {
   if (Number.isFinite(testN) && testN >= 2 && testN <= 64) {
     SK.persist = false;
     App.entries = placeholderEntries(testN);
+    const bonusN = Math.min(32, Math.max(0, parseInt(params.get("bonus"), 10) || 0));
+    const bonus = placeholderEntries(testN + bonusN).slice(testN).map(e => ({ ...e, bracket: "bonus" }));
     const playedRaw = params.get("played");
     const played = playedRaw === "all" ? 99 : Math.max(0, parseInt(playedRaw, 10) || 0);
     App.votes = simulateVotes(App.entries, played);
-    showNotice(`TEST MODE: ${testN} placeholder entries` +
+    if (bonus.length > 1) App.votes.push(...simulateVotes(bonus, played, "bonus", 11));
+    App.entries.push(...bonus);
+    showNotice(`TEST MODE: ${testN} placeholder entries` + (bonusN ? ` + ${bonusN} bonus` : "") +
       (played ? `, ${playedRaw === "all" ? "every round" : played + " round(s)"} with simulated votes` : "") +
       ". Remove ?test from the address to see the real data.");
     return;
@@ -2241,19 +2314,56 @@ function renderAll() {
     container.innerHTML = "";
     meta.textContent = mainEntries.length ? "Waiting for at least 2 entries." : "No entries yet.";
     App.main = null;
+    renderBonus();
     return;
   }
   App.main = buildBracket(mainEntries, indexVotes(App.votes), "main");
   meta.textContent = bracketMeta(App.main);
   renderBracket(container, App.main);
+  renderBonus();
+}
+
+// Late entries never join the main bracket: 2+ get their own bracket, 1 gets a showcase card.
+function renderBonus() {
+  const entries = App.entries.filter(e => e.bracket === "bonus");
+  const section = document.getElementById("bonus-section");
+  const heading = document.getElementById("bonus-bracket-heading");
+  const meta = document.getElementById("bonus-bracket-meta");
+  const showcase = document.getElementById("bonus-showcase");
+  const scroll = document.getElementById("bonus-scroll");
+  const container = document.getElementById("bonus-bracket");
+  App.bonus = null;
+  container.innerHTML = "";
+  if (!entries.length) { section.hidden = true; return; }
+  section.hidden = false;
+  if (entries.length === 1) {
+    const e = entries[0];
+    heading.textContent = "Bonus Entry";
+    meta.textContent = "A late entry, showcased here.";
+    scroll.hidden = true;
+    showcase.hidden = false;
+    showcase.dataset.id = e.id;
+    showcase.setAttribute("aria-label", `Bonus entry: ${e.metaphor}. Read the explanation`);
+    document.getElementById("bonus-showcase-name").textContent = e.metaphor;
+    drawPortrait(document.getElementById("bonus-showcase-art"), e.id + "|" + e.metaphor);
+    return;
+  }
+  heading.textContent = "Bonus Bracket";
+  showcase.hidden = true;
+  scroll.hidden = false;
+  App.bonus = buildBracket(entries, indexVotes(App.votes), "bonus");
+  meta.textContent = bracketMeta(App.bonus).replace("Champion crowned!", "Bonus champion crowned!");
+  renderBracket(container, App.bonus);
 }
 
 function refreshLayout() {
-  const container = document.getElementById("main-bracket");
-  if (!App.main) return;
-  const wantLayout = wantsSplit(App.main) ? "split" : "columns";
-  if (container.dataset.layout !== wantLayout) renderBracket(container, App.main);
-  else layoutBracket(container, App.main);
+  [[App.main, "main-bracket"], [App.bonus, "bonus-bracket"]].forEach(([br, id]) => {
+    if (!br) return;
+    const container = document.getElementById(id);
+    const wantLayout = wantsSplit(br, container) ? "split" : "columns";
+    if (container.dataset.layout !== wantLayout) renderBracket(container, br);
+    else layoutBracket(container, br);
+  });
 }
 
 /* Start screen */
@@ -2291,6 +2401,7 @@ window.addEventListener("resize", () => {
   document.getElementById("press-start").focus();
   setupCard();
   wireTracing(document.getElementById("main-bracket"));
+  wireTracing(document.getElementById("bonus-bracket"));
   await loadData();
   renderAll();
   setupScorekeeper();
