@@ -295,7 +295,7 @@ button.slot:focus-visible {
   padding: 5px 4px; min-width: 30px; text-align: right;
   background: #03040d; border: 1px solid #1d2450; border-radius: 3px;
 }
-.led__ghost { color: rgba(255,233,74,.12); }
+.led__ghost::before { content: attr(data-ghost); color: rgba(255,233,74,.12); }   /* decorative unlit segments */
 .led__digits { position: absolute; right: 4px; top: 5px; color: var(--yellow); text-shadow: 0 0 6px rgba(255,233,74,.8); }
 
 /* Placeholder slot (winner not known yet) */
@@ -1176,7 +1176,9 @@ function renderSlot(slot, m, k) {
   const led = el("span", "led");
   led.setAttribute("aria-hidden", "true");
   const digits = scored ? String(v) : "";
-  led.append(el("span", "led__ghost", "8".repeat(Math.max(2, digits.length))));
+  const ghost = el("span", "led__ghost");
+  ghost.dataset.ghost = "8".repeat(Math.max(2, digits.length));
+  led.append(ghost);
   if (scored) led.append(el("span", "led__digits", digits.padStart(2, " ")));
   b.append(led);
   if (scored) {
@@ -1692,6 +1694,8 @@ function publishMatchups(items) {
   renderAll();
   renderPanel();
   skStatus(`Published ${entry.title}.`);
+  // On narrow screens the panel covers the bracket: tuck it away so the reveal is visible.
+  if (SK.open && window.innerWidth < 1100) setPanelOpen(false);
   if (typeof onPublished === "function") onPublished(done.map(({ br, m }) => ({ bracket: br.bracketName, round: m.round, index: m.index })));
   return done;
 }
@@ -2007,7 +2011,7 @@ function setupScorekeeper() {
 /* ============================================================
    Reveal animations (Phase 5)
    ============================================================ */
-const Anim = { token: 0 };
+const Anim = { token: 0, busy: 0 };   // busy > 0 while a reveal (incl. champion moment) is playing
 const reduceMotion = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -2186,11 +2190,14 @@ async function revealOne(item, token) {
 }
 
 async function revealSequence(items, token) {
-  for (let k = 0; k < items.length; k++) {
-    if (token !== Anim.token) return;
-    await revealOne(items[k], token);
-    if (k < items.length - 1) await sleep(reduceMotion() ? 150 : 650);
-  }
+  Anim.busy++;
+  try {
+    for (let k = 0; k < items.length; k++) {
+      if (token !== Anim.token) return;
+      await revealOne(items[k], token);
+      if (k < items.length - 1) await sleep(reduceMotion() ? 150 : 650);
+    }
+  } finally { Anim.busy--; }
 }
 
 // Called by the scorekeeper right after it publishes and re-renders.
@@ -2374,7 +2381,8 @@ function renderHall(animate) {
 function onChampionDone(br) {
   View.holdToggle = false;
   updateViewToggle();
-  if (br.bracketName === "main") setView("hall", { animate: true, focus: true });
+  // Main final decided → Hall of Fame. A bonus final that finishes after it ends there too.
+  if (tournamentOver()) setView("hall", { animate: true, focus: true });
 }
 
 function setupViews() {
