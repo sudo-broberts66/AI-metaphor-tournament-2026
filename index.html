@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournament of AI Metaphors</title>
+<meta name="description" content="Think March Madness Meets Academic Analogies — a single-elimination bracket of student metaphors that explain AI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Tokens
+   ============================================================ */
+:root {
+  --bg: #05071a;
+  --bg-2: #0a0f2e;
+  --panel: #0d1338;
+  --panel-2: #121a47;
+  --line: #2a3577;
+  --text: #f1f4ff;
+  --text-muted: #b4bde3;     /* ≈ 9:1 on --bg */
+  --cyan: #2ef6ff;
+  --magenta: #ff4af2;
+  --yellow: #ffe94a;
+  --lime: #8dff6a;
+  --cyan-soft: rgba(46, 246, 255, .14);
+  --magenta-soft: rgba(255, 74, 242, .14);
+  --yellow-soft: rgba(255, 233, 74, .14);
+  --pixel: "Press Start 2P", ui-monospace, "Courier New", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius: 6px;
+  --col-min: 150px;
+  --gap-col: 18px;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; }
+.sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ============================================================
+   Arena background: court lines + CRT scanlines + vignette
+   ============================================================ */
+.court {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(40, 60, 170, .28), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(255, 74, 242, .10), transparent 55%),
+    var(--bg);
+}
+.court svg { width: 100%; height: 100%; display: block; }
+.court .c { fill: none; stroke-width: 2; }
+.court .c-cyan { stroke: rgba(46, 246, 255, .13); }
+.court .c-mag  { stroke: rgba(255, 74, 242, .12); }
+.court .c-yel  { stroke: rgba(255, 233, 74, .10); }
+
+body::after {          /* scanlines */
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+body::before {         /* vignette */
+  content: ""; position: fixed; inset: 0; z-index: 49; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%);
+}
+
+/* ============================================================
+   Start screen
+   ============================================================ */
+.start {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 28px; padding: 24px 16px; text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(46, 246, 255, .10), transparent 60%),
+    rgba(5, 7, 26, .96);
+}
+.start[hidden] { display: none; }
+.start__trophy { width: 72px; height: auto; filter: drop-shadow(0 0 10px rgba(255,233,74,.6)); }
+.start__title {
+  font-family: var(--pixel);
+  font-size: clamp(22px, 5.4vw, 64px);
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: .02em;
+  color: var(--text);
+  text-shadow:
+    0 0 6px var(--cyan),
+    0 0 18px rgba(46,246,255,.7),
+    4px 4px 0 var(--magenta);
+  animation: flicker 6s infinite steps(1);
+}
+.start__title > span { display: block; }
+.start__title .ai { color: var(--yellow); text-shadow: 0 0 8px var(--yellow), 0 0 22px rgba(255,233,74,.6), 4px 4px 0 var(--magenta); }
+.start__subtitle {
+  font-family: var(--sans); font-size: clamp(16px, 2.2vw, 22px); font-weight: 600;
+  color: var(--text-muted); margin: 0; max-width: 46ch;
+}
+.press-start {
+  font-family: var(--pixel); font-size: clamp(14px, 2.4vw, 22px);
+  color: var(--yellow);
+  background: transparent;
+  border: 3px solid var(--yellow);
+  padding: 18px 26px;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 18px rgba(255,233,74,.55), inset 0 0 14px rgba(255,233,74,.25);
+  text-shadow: 0 0 8px rgba(255,233,74,.8);
+}
+.press-start .blink { animation: blink 1.05s infinite steps(1); }
+.press-start:hover, .press-start:focus-visible {
+  background: rgba(255,233,74,.12); outline: none;
+}
+.press-start:focus-visible { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--cyan), 0 0 24px rgba(255,233,74,.8); }
+.start__hint { font-family: var(--pixel); font-size: 10px; color: var(--text-muted); margin: 0; line-height: 2; }
+.start__hint kbd { font-family: inherit; color: var(--cyan); }
+.start.is-leaving { animation: start-out .55s ease-in forwards; }
+
+@keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+@keyframes flicker { 0%, 92%, 94%, 100% { opacity: 1; } 93% { opacity: .55; } }
+@keyframes start-out {
+  0%   { opacity: 1; transform: scale(1); filter: brightness(1); }
+  25%  { filter: brightness(2.2); }
+  100% { opacity: 0; transform: scale(1.08); filter: brightness(1); }
+}
+
+/* ============================================================
+   Page chrome
+   ============================================================ */
+.page { position: relative; z-index: 1; }
+.arena-header { text-align: center; padding: 36px 16px 12px; }
+.arena-header h1 {
+  font-family: var(--pixel); font-weight: 400;
+  font-size: clamp(16px, 2.6vw, 30px); line-height: 1.5; margin: 0;
+  text-shadow: 0 0 6px var(--cyan), 0 0 16px rgba(46,246,255,.6), 3px 3px 0 var(--magenta);
+}
+.arena-header h1 .ai { color: var(--yellow); }
+.arena-header .subtitle { margin: 10px 0 0; color: var(--text-muted); font-weight: 600; font-size: clamp(15px, 1.6vw, 18px); }
+
+.notice {
+  max-width: 720px; margin: 12px auto 0; padding: 10px 14px;
+  border: 1px dashed var(--yellow); border-radius: var(--radius);
+  color: var(--text); background: var(--yellow-soft); font-size: 14px;
+}
+.notice[hidden] { display: none; }
+
+.bracket-section { padding: 18px 0 40px; }
+.section-head {
+  display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap;
+  gap: 6px 16px; padding: 0 16px; margin-bottom: 18px; text-align: center;
+}
+.section-head h2 {
+  font-family: var(--pixel); font-weight: 400; font-size: clamp(13px, 1.5vw, 16px);
+  margin: 0; color: var(--cyan); text-shadow: 0 0 8px rgba(46,246,255,.6);
+  letter-spacing: .06em;
+}
+.section-head h2:focus { outline: none; }
+.section-meta { margin: 0; color: var(--text-muted); font-size: 14px; }
+
+/* ============================================================
+   Bracket layout
+   ============================================================ */
+.bracket-scroll {
+  overflow-x: auto; overflow-y: visible;
+  padding: 8px 16px 18px;
+  scrollbar-color: var(--line) transparent;
+}
+.bracket-canvas {
+  position: relative;
+  margin: 0 auto;
+  display: grid;
+  gap: 0 var(--gap-col);
+  align-items: stretch;
+}
+.bracket-canvas.is-split { max-width: 1680px; }
+.bracket-canvas.is-columns { width: max-content; }
+
+.wires {
+  position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 0;
+}
+.wire {
+  fill: none; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter;
+  stroke-dasharray: 1; stroke-dashoffset: 0;
+  opacity: .75;
+}
+.wire--left   { stroke: var(--cyan);    filter: drop-shadow(0 0 3px rgba(46,246,255,.8)); }
+.wire--right  { stroke: var(--magenta); filter: drop-shadow(0 0 3px rgba(255,74,242,.8)); }
+.wire--center { stroke: var(--yellow);  filter: drop-shadow(0 0 3px rgba(255,233,74,.8)); }
+
+.round {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.round__label {
+  font-family: var(--pixel); font-weight: 400; font-size: 10px; line-height: 1.6;
+  margin: 0 0 14px; text-align: center; letter-spacing: .06em;
+  color: var(--text); padding: 7px 4px; border-bottom: 2px solid currentColor;
+}
+.round--left  .round__label { color: var(--cyan); }
+.round--right .round__label { color: var(--magenta); }
+.round--center .round__label { color: var(--yellow); }
+.round__matches {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-around;
+  gap: 16px; min-height: 460px;
+}
+.is-columns .round { width: min(78vw, 290px); scroll-snap-align: start; }
+.is-columns .round__matches { min-height: 0; }
+
+/* Matchup card */
+.matchup {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.round--left  .matchup { border-color: rgba(46,246,255,.45); }
+.round--right .matchup { border-color: rgba(255,74,242,.45); }
+.round--center .matchup { border-color: rgba(255,233,74,.6); box-shadow: 0 0 22px rgba(255,233,74,.15), 0 6px 18px rgba(0,0,0,.35); }
+.matchup + .matchup { margin-top: 0; }
+
+.slot {
+  display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 6px;
+  width: 100%; min-height: 48px; padding: 6px 8px 6px 6px;
+  background: transparent; border: 0; text-align: left;
+  border-radius: calc(var(--radius) - 2px);
+}
+.slot + .slot { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; }
+button.slot { cursor: pointer; }
+button.slot:hover { background: rgba(255,255,255,.05); }
+button.slot:focus-visible {
+  outline: 3px solid var(--yellow); outline-offset: 2px; position: relative; z-index: 2;
+}
+.slot__seed {
+  font-family: var(--pixel); font-size: 9px; line-height: 1;
+  color: var(--bg); background: var(--cyan);
+  width: 26px; height: 22px; display: grid; place-items: center; border-radius: 3px;
+}
+.round--right .slot__seed { background: var(--magenta); }
+.round--center .slot__seed { background: var(--yellow); }
+.slot__name {
+  font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* LED scoreboard cell (unlit until results are published) */
+.led {
+  position: relative; font-family: var(--pixel); font-size: 10px; line-height: 1;
+  padding: 5px 4px; min-width: 30px; text-align: right;
+  background: #03040d; border: 1px solid #1d2450; border-radius: 3px;
+}
+.led__ghost { color: rgba(255,233,74,.12); }
+.led__digits { position: absolute; right: 4px; top: 5px; color: var(--yellow); text-shadow: 0 0 6px rgba(255,233,74,.8); }
+
+/* Placeholder slot (winner not known yet) */
+.slot--tbd .slot__seed { background: transparent; border: 1px dashed var(--line); color: var(--text-muted); }
+.slot--tbd .slot__name { font-family: var(--pixel); font-size: 10px; font-weight: 400; color: var(--text-muted); letter-spacing: .2em; }
+
+/* Bye */
+.bye-note {
+  margin: 0; padding: 6px 10px 8px; border-top: 1px dashed var(--line);
+  font-size: 13px; font-weight: 600; color: var(--lime);
+}
+.bye-note::before { content: "▶ "; }
+
+/* Championship center */
+.champ-stack { position: relative; }
+.champ-top {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 14px);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.trophy { width: 84px; height: auto; filter: drop-shadow(0 0 6px rgba(255,233,74,.45)); }
+.champ-bottom { position: absolute; left: 0; right: 0; top: calc(100% + 26px); }
+.champion-plate {
+  text-align: center; padding: 10px 8px;
+  border: 2px solid var(--yellow); border-radius: var(--radius);
+  background: rgba(255,233,74,.07);
+  box-shadow: 0 0 16px rgba(255,233,74,.2), inset 0 0 12px rgba(255,233,74,.08);
+}
+.champion-plate__label { font-family: var(--pixel); font-size: 10px; color: var(--yellow); margin: 0 0 8px; letter-spacing: .1em; }
+.champion-plate__name { font-family: var(--pixel); font-size: 11px; color: var(--text-muted); margin: 0; letter-spacing: .2em; }
+.is-columns .round--center .round__matches { justify-content: center; padding: 150px 0 110px; }
+
+.page-footer { text-align: center; padding: 10px 16px 40px; color: var(--text-muted); font-size: 14px; }
+.page-footer p { margin: 4px 0; }
+
+/* ============================================================
+   Entrance animation (after PRESS START)
+   ============================================================ */
+.is-entering .arena-header { animation: drop-in .6s cubic-bezier(.2,.9,.3,1.2) both; }
+.is-entering .round { animation: slide-in .55s cubic-bezier(.2,.9,.3,1.1) both; animation-delay: calc(var(--i, 0) * 110ms + 200ms); }
+.is-entering .round--left  { --from: -40px; }
+.is-entering .round--right { --from: 40px; }
+.is-entering .round--center { --from: 0px; animation-name: pop-in; }
+.is-entering .wire { stroke-dashoffset: 1; animation: draw .7s ease-out forwards; animation-delay: calc(var(--i, 0) * 110ms + 650ms); }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: none; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(var(--from)); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.85); } 70% { opacity: 1; transform: scale(1.03); } 100% { opacity: 1; transform: none; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+/* ============================================================
+   Reduced motion: fades only, no scanlines
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body::after { display: none; }
+  .start__title { animation: none; }
+  .press-start .blink { animation: soft-pulse 2.4s ease-in-out infinite; }
+  .start.is-leaving { animation: fade-out .3s linear forwards; }
+  .is-entering .arena-header,
+  .is-entering .round,
+  .is-entering .round--center { animation: fade-in .4s linear both; animation-delay: 0s; }
+  .is-entering .wire { animation: none; stroke-dashoffset: 0; }
+  @keyframes soft-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { to { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="court" aria-hidden="true">
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <rect class="c c-cyan" x="60" y="60" width="1480" height="780"/>
+    <line class="c c-yel" x1="800" y1="60" x2="800" y2="840"/>
+    <circle class="c c-yel" cx="800" cy="450" r="120"/>
+    <circle class="c c-mag" cx="800" cy="450" r="40"/>
+    <rect class="c c-cyan" x="60" y="330" width="260" height="240"/>
+    <circle class="c c-cyan" cx="320" cy="450" r="120"/>
+    <path class="c c-cyan" d="M60 130 H200 A420 420 0 0 1 200 770 H60"/>
+    <rect class="c c-mag" x="1280" y="330" width="260" height="240"/>
+    <circle class="c c-mag" cx="1280" cy="450" r="120"/>
+    <path class="c c-mag" d="M1540 130 H1400 A420 420 0 0 0 1400 770 H1540"/>
+  </svg>
+</div>
+
+<!-- START SCREEN -->
+<div class="start" id="start">
+  <svg class="start__trophy" viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
+    <use href="#pixel-trophy"/>
+  </svg>
+  <p class="start__title" aria-hidden="true"><span>Tournament</span><span>of <span class="ai">AI</span></span><span>Metaphors</span></p>
+  <p class="start__subtitle">Think March Madness Meets Academic Analogies</p>
+  <button type="button" class="press-start" id="press-start">
+    <span class="blink" aria-hidden="true">PRESS START</span>
+    <span class="sr-only">Press start to enter the Tournament of AI Metaphors</span>
+  </button>
+  <p class="start__hint">Click or press <kbd>ENTER</kbd> / <kbd>SPACE</kbd></p>
+</div>
+
+<!-- Reusable pixel trophy -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="pixel-trophy">
+      <!-- cup -->
+      <rect x="3" y="1" width="10" height="1" fill="#fff6a8"/>
+      <rect x="3" y="2" width="10" height="5" fill="#ffe94a"/>
+      <rect x="4" y="7" width="8" height="1" fill="#ffe94a"/>
+      <rect x="5" y="8" width="6" height="1" fill="#e9c500"/>
+      <rect x="4" y="2" width="1" height="4" fill="#fffbd6"/>
+      <!-- handles -->
+      <rect x="1" y="2" width="2" height="1" fill="#ffe94a"/>
+      <rect x="1" y="3" width="1" height="2" fill="#ffe94a"/>
+      <rect x="1" y="5" width="3" height="1" fill="#ffe94a"/>
+      <rect x="13" y="2" width="2" height="1" fill="#ffe94a"/>
+      <rect x="14" y="3" width="1" height="2" fill="#ffe94a"/>
+      <rect x="12" y="5" width="3" height="1" fill="#ffe94a"/>
+      <!-- stem + base -->
+      <rect x="7" y="9" width="2" height="2" fill="#e9c500"/>
+      <rect x="5" y="11" width="6" height="1" fill="#ffe94a"/>
+      <rect x="4" y="12" width="8" height="2" fill="#2ef6ff"/>
+      <rect x="3" y="14" width="10" height="1" fill="#ff4af2"/>
+      <!-- star -->
+      <rect x="7" y="3" width="2" height="3" fill="#ff4af2"/>
+      <rect x="6" y="4" width="4" height="1" fill="#ff4af2"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="page" id="page">
+  <header class="arena-header">
+    <h1>Tournament of <span class="ai">AI</span> Metaphors</h1>
+    <p class="subtitle">Think March Madness Meets Academic Analogies</p>
+    <p class="notice" id="data-notice" role="status" hidden></p>
+  </header>
+
+  <main>
+    <section class="bracket-section" aria-labelledby="main-bracket-heading">
+      <div class="section-head">
+        <h2 id="main-bracket-heading" tabindex="-1">Main Bracket</h2>
+        <p class="section-meta" id="main-bracket-meta"></p>
+      </div>
+      <div class="bracket-scroll">
+        <div class="bracket-canvas" id="main-bracket"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <p>Votes are cast on paper slips each class and published here live.</p>
+    <p>Every metaphor earns a finish badge — they all made the bracket.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CSV parsing (RFC 4180: quoted fields, "" escapes, CR/LF, BOM)
+   ============================================================ */
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], field = "", i = 0, inQuotes = false;
+  const n = text.length;
+  while (i < n) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQuotes = true; i++; continue; }
+    if (ch === ",") { row.push(field); field = ""; i++; continue; }
+    if (ch === "\r") { i++; if (text[i] === "\n") i++; row.push(field); rows.push(row); row = []; field = ""; continue; }
+    if (ch === "\n") { i++; row.push(field); rows.push(row); row = []; field = ""; continue; }
+    field += ch; i++;
+  }
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function csvToObjects(text) {
+  const rows = parseCSV(text).filter(r => r.some(c => c.trim() !== ""));
+  if (!rows.length) return [];
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  return rows.slice(1).map(r => {
+    const o = {};
+    head.forEach((h, k) => { o[h] = (r[k] ?? "").trim(); });
+    return o;
+  });
+}
+
+function normalizeEntries(objs) {
+  return objs
+    .filter(o => o.id !== "" && o.metaphor !== "")
+    .map(o => ({
+      id: String(o.id),
+      bracket: (o.bracket || "main").toLowerCase() === "bonus" ? "bonus" : "main",
+      metaphor: o.metaphor || "",
+      summary: o.summary || "",
+      clarifies: o.clarifies || "",
+      confuses: o.confuses || "",
+      relationship: o.relationship || ""
+    }));
+}
+
+/* ============================================================
+   Bracket structure (seeding + byes)
+   ============================================================ */
+function nextPow2(n) { let s = 2; while (s < n) s *= 2; return s; }
+
+// Standard seeding: each round, pair seed s with (size + 1 - s).
+function seedOrder(size) {
+  let order = [1];
+  while (order.length < size) {
+    const m = order.length * 2;
+    order = order.flatMap(s => [s, m + 1 - s]);
+  }
+  return order;
+}
+
+function roundName(remaining) {
+  switch (remaining) {
+    case 2: return "Championship";
+    case 4: return "Final Four";
+    case 8: return "Elite 8";
+    default: return "Round of " + remaining;
+  }
+}
+
+function buildBracket(entries) {
+  const n = entries.length;
+  const size = nextPow2(Math.max(n, 2));
+  const numRounds = Math.log2(size);
+  const order = seedOrder(size);
+  const rounds = [];
+
+  const first = [];
+  for (let i = 0; i < size; i += 2) {
+    const slots = [order[i], order[i + 1]].map(seed =>
+      seed <= n ? { seed, entry: entries[seed - 1] } : null);
+    const m = { round: 0, index: i / 2, slots, winner: null, bye: false };
+    if (!slots[0] || !slots[1]) { m.bye = true; m.winner = slots[0] || slots[1]; }
+    first.push(m);
+  }
+  rounds.push(first);
+
+  for (let r = 1; r < numRounds; r++) {
+    const prev = rounds[r - 1], cur = [];
+    for (let i = 0; i < prev.length / 2; i++) {
+      cur.push({ round: r, index: i, slots: [prev[2 * i].winner, prev[2 * i + 1].winner], winner: null, bye: false });
+    }
+    rounds.push(cur);
+  }
+  return { size, numRounds, rounds, count: n };
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+
+function renderSlot(slot) {
+  if (!slot) {
+    const d = el("div", "slot slot--tbd");
+    d.append(el("span", "slot__seed", "·"));
+    const nm = el("span", "slot__name", "???");
+    nm.setAttribute("aria-hidden", "true");
+    d.append(nm, el("span", "sr-only", "To be decided"));
+    return d;
+  }
+  const b = el("button", "slot");
+  b.type = "button";
+  b.dataset.id = slot.entry.id;
+  b.dataset.seed = slot.seed;
+  b.title = slot.entry.metaphor;
+  b.setAttribute("aria-label", `Seed ${slot.seed}: ${slot.entry.metaphor}`);
+  b.append(el("span", "slot__seed", String(slot.seed)), el("span", "slot__name", slot.entry.metaphor));
+  const led = el("span", "led");
+  led.setAttribute("aria-hidden", "true");
+  led.append(el("span", "led__ghost", "88"));
+  b.append(led);
+  return b;
+}
+
+function renderMatchup(m) {
+  const card = el("div", "matchup");
+  card.dataset.round = m.round;
+  card.dataset.index = m.index;
+  if (m.bye) {
+    card.classList.add("matchup--bye");
+    const s = renderSlot(m.winner);
+    s.dataset.slot = "0";
+    card.append(s, el("p", "bye-note", "Advances on a bye"));
+  } else {
+    m.slots.forEach((s, k) => { const node = renderSlot(s); node.dataset.slot = String(k); card.append(node); });
+  }
+  return card;
+}
+
+function renderRound(br, r, matchups, side, order) {
+  const col = el("div", `round round--${side}`);
+  col.style.setProperty("--i", order);
+  const label = el("h3", "round__label", roundName(br.size >> r));
+  col.append(label);
+  const list = el("div", "round__matches");
+  if (side === "center") {
+    const m = matchups[0];
+    const stack = el("div", "champ-stack");
+    const top = el("div", "champ-top");
+    const trophy = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    trophy.setAttribute("viewBox", "0 0 16 16");
+    trophy.setAttribute("class", "trophy");
+    trophy.setAttribute("shape-rendering", "crispEdges");
+    trophy.setAttribute("aria-hidden", "true");
+    trophy.innerHTML = '<use href="#pixel-trophy"/>';
+    top.append(trophy);
+    const card = renderMatchup(m);
+    const bottom = el("div", "champ-bottom");
+    const plate = el("div", "champion-plate");
+    plate.append(el("p", "champion-plate__label", "CHAMPION"));
+    const nm = el("p", "champion-plate__name", "???");
+    nm.setAttribute("aria-label", "To be decided");
+    plate.append(nm);
+    bottom.append(plate);
+    stack.append(top, card, bottom);
+    list.append(stack);
+  } else {
+    matchups.forEach(m => list.append(renderMatchup(m)));
+  }
+  col.append(list);
+  return col;
+}
+
+// Split layout needs room for every column; otherwise use scrolling columns.
+function wantsSplit(br) {
+  const cols = br.numRounds === 1 ? 1 : (br.numRounds - 1) * 2 + 1;
+  const need = cols * 150 + 30 + (cols - 1) * 18 + 32;
+  return window.innerWidth >= Math.max(need, 900);
+}
+
+function renderBracket(container, br) {
+  container.innerHTML = "";
+  const split = wantsSplit(br);
+  container.classList.toggle("is-split", split);
+  container.classList.toggle("is-columns", !split);
+  container.dataset.layout = split ? "split" : "columns";
+  const last = br.numRounds - 1;
+  const cols = [];
+
+  if (split) {
+    for (let r = 0; r < last; r++) {
+      const ms = br.rounds[r];
+      cols.push(renderRound(br, r, ms.slice(0, ms.length / 2), "left", r));
+    }
+    cols.push(renderRound(br, last, br.rounds[last], "center", last));
+    for (let r = last - 1; r >= 0; r--) {
+      const ms = br.rounds[r];
+      cols.push(renderRound(br, r, ms.slice(ms.length / 2), "right", r));
+    }
+    const side = last;
+    container.style.gridTemplateColumns =
+      `repeat(${side}, minmax(150px, 1fr)) minmax(180px, 1.15fr) repeat(${side}, minmax(150px, 1fr))`;
+  } else {
+    for (let r = 0; r <= last; r++) cols.push(renderRound(br, r, br.rounds[r], r === last ? "center" : "left", r));
+    container.style.gridTemplateColumns = `repeat(${cols.length}, auto)`;
+  }
+  cols.forEach(c => container.append(c));
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "wires");
+  svg.setAttribute("aria-hidden", "true");
+  container.prepend(svg);
+  drawWires(container, br);
+}
+
+// Position relative to the canvas, ignoring CSS transforms (entrance animation).
+function offsetIn(node, root) {
+  let x = 0, y = 0, n = node;
+  while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return { x, y, w: node.offsetWidth, h: node.offsetHeight };
+}
+
+function drawWires(container, br) {
+  const svg = container.querySelector(".wires");
+  if (!svg) return;
+  const W = container.scrollWidth, H = container.scrollHeight;
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  const split = container.dataset.layout === "split";
+  const card = (r, i) => container.querySelector(`.matchup[data-round="${r}"][data-index="${i}"]`);
+  const last = br.numRounds - 1;
+
+  const addPath = (d, cls, order) => {
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", d);
+    p.setAttribute("pathLength", "1");
+    p.setAttribute("class", "wire " + cls);
+    p.style.setProperty("--i", order);
+    svg.append(p);
+  };
+
+  for (let r = 1; r <= last; r++) {
+    br.rounds[r].forEach((m, i) => {
+      const tgt = card(r, i);
+      if (!tgt) return;
+      const t = offsetIn(tgt, container);
+      [0, 1].forEach(k => {
+        const src = card(r - 1, 2 * i + k);
+        if (!src) return;
+        const s = offsetIn(src, container);
+        const slotEl = tgt.querySelector(`[data-slot="${k}"]`) || tgt;
+        const so = offsetIn(slotEl, container);
+        const ty = so.y + so.h / 2;
+        const sy = s.y + s.h / 2;
+        const fromLeft = s.x + s.w / 2 < t.x + t.w / 2;
+        const sx = fromLeft ? s.x + s.w : s.x;
+        const tx = fromLeft ? t.x : t.x + t.w;
+        const mx = (sx + tx) / 2;
+        let cls = "wire--left";
+        if (split) cls = r === last ? "wire--center" : (fromLeft ? "wire--left" : "wire--right");
+        else if (r === last) cls = "wire--center";
+        addPath(`M${sx} ${sy} H${mx} V${ty} H${tx}`, cls, r);
+      });
+    });
+  }
+  // Championship card → champion plate
+  const champ = card(last, 0);
+  const plate = container.querySelector(".champion-plate");
+  if (champ && plate) {
+    const c = offsetIn(champ, container), p = offsetIn(plate, container);
+    const x = c.x + c.w / 2;
+    addPath(`M${x} ${c.y + c.h} V${p.y}`, "wire--center", last + 1);
+  }
+}
+
+/* ============================================================
+   App state + boot
+   ============================================================ */
+const App = { entries: [], main: null };
+
+function placeholderEntries(n) {
+  return Array.from({ length: n }, (_, k) => ({
+    id: String(k + 1), bracket: "main", metaphor: `Metaphor ${k + 1}`,
+    summary: "", clarifies: "", confuses: "", relationship: ""
+  }));
+}
+
+async function loadText(url) {
+  const res = await fetch(url, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.text();
+}
+
+async function loadData() {
+  try {
+    App.entries = normalizeEntries(csvToObjects(await loadText("data/metaphors.csv")));
+  } catch (err) {
+    console.warn("Could not load data/metaphors.csv — using placeholders.", err);
+    App.entries = placeholderEntries(15);
+    const note = document.getElementById("data-notice");
+    note.textContent = "Couldn't load data/metaphors.csv, so placeholder entries are shown. " +
+      "If you opened index.html straight from your computer, view it through GitHub Pages or a local web server instead.";
+    note.hidden = false;
+  }
+}
+
+function renderAll() {
+  const mainEntries = App.entries.filter(e => e.bracket === "main");
+  const container = document.getElementById("main-bracket");
+  const meta = document.getElementById("main-bracket-meta");
+  if (mainEntries.length < 2) {
+    container.innerHTML = "";
+    meta.textContent = mainEntries.length ? "Waiting for at least 2 entries." : "No entries yet.";
+    App.main = null;
+    return;
+  }
+  App.main = buildBracket(mainEntries);
+  const br = App.main;
+  meta.textContent = `${mainEntries.length} metaphors · ${br.size}-slot bracket · ${roundName(br.size)} up next`;
+  renderBracket(container, br);
+}
+
+function refreshLayout() {
+  const container = document.getElementById("main-bracket");
+  if (!App.main) return;
+  const wantLayout = wantsSplit(App.main) ? "split" : "columns";
+  if (container.dataset.layout !== wantLayout) renderBracket(container, App.main);
+  else drawWires(container, App.main);
+}
+
+/* Start screen */
+let started = false;
+function startGame() {
+  if (started) return;
+  started = true;
+  const start = document.getElementById("start");
+  const page = document.getElementById("page");
+  page.classList.add("is-entering");
+  start.classList.add("is-leaving");
+  const done = () => {
+    start.hidden = true;
+    document.getElementById("main-bracket-heading").focus({ preventScroll: true });
+  };
+  start.addEventListener("animationend", done, { once: true });
+  setTimeout(() => { if (!start.hidden) done(); }, 900);   // safety net
+  setTimeout(() => page.classList.remove("is-entering"), 3500);
+}
+
+document.getElementById("press-start").addEventListener("click", startGame);
+document.addEventListener("keydown", e => {
+  if (started) return;
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startGame(); }
+});
+
+let resizeTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(refreshLayout, 120);
+});
+
+(async function boot() {
+  document.getElementById("press-start").focus();
+  await loadData();
+  renderAll();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshLayout);
+})();
+</script>
+</body>
+</html>
