@@ -1713,7 +1713,7 @@ function openCard(id, opener) {
 
   for (const key of ["summary", "clarifies", "confuses", "relationship"]) {
     const p = document.getElementById("card-" + key);
-    const txt = (entry[key] || "").trim();
+    const txt = tidyParagraphs(entry[key]);
     p.textContent = txt || "Explanation coming soon";
     p.classList.toggle("is-empty", !txt);
   }
@@ -1929,7 +1929,7 @@ function bracketSignature(entries, name) {
 
 async function uploadMetaphors(file) {
   let entries;
-  try { entries = normalizeEntries(csvToObjects(await file.text())); }
+  try { entries = normalizeEntries(csvToObjects(await readFileText(file))); }
   catch (e) { skStatus("Couldn't read that file.", true); return; }
   if (!entries.length) { skStatus(`No metaphors found in ${file.name}. It needs id, bracket and metaphor columns.`, true); return; }
   const ids = entries.map(e => e.id);
@@ -1957,7 +1957,7 @@ async function uploadMetaphors(file) {
 
 async function uploadVotes(file) {
   let rows;
-  try { rows = normalizeVotes(csvToObjects(await file.text())); }
+  try { rows = normalizeVotes(csvToObjects(await readFileText(file))); }
   catch (e) { skStatus("Couldn't read that file.", true); return; }
   if (!confirm(`Replace the ${App.votes.length} published score rows on this computer with the ${rows.length} rows in ${file.name}?`)) return;
   App.votes = rows;
@@ -2618,7 +2618,35 @@ function placeholderEntries(n) {
 async function loadText(url) {
   const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return res.text();
+  return decodeCSVBytes(await res.arrayBuffer());
+}
+
+// Excel saves "CSV" in an old encoding (Mac Roman on a Mac, Windows-1252 on a PC) unless you pick
+// "CSV UTF-8". Accept all three so curly quotes, dashes and accents never turn into "�".
+function decodeCSVBytes(buf) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(buf); } catch (e) { /* not UTF-8 */ }
+  const tries = ["windows-1252", "macintosh"].map(enc => {
+    try { return new TextDecoder(enc).decode(buf); } catch (e) { return null; }
+  }).filter(Boolean);
+  if (!tries.length) return new TextDecoder("utf-8").decode(buf);
+  // Mac Roman puts curly quotes at bytes Windows-1252 uses for Ò Ó Õ; pick whichever reads like English.
+  const mac = tries[1], win = tries[0];
+  if (!mac) return win;
+  const bad = t => (t.match(/[ÒÓÔÕ]/g) || []).length + (t.match(/[\u0080-\u009F]/g) || []).length;
+  const good = t => (t.match(/[‘’“”–—…]/g) || []).length;
+  return (good(mac) - bad(mac)) > (good(win) - bad(win)) ? mac : win;
+}
+
+async function readFileText(file) { return decodeCSVBytes(await file.arrayBuffer()); }
+
+// Text pasted from a PDF or document often has line breaks in the middle of sentences.
+// Join those back into flowing paragraphs, but keep real paragraph breaks (blank lines).
+function tidyParagraphs(text) {
+  return String(text || "").replace(/\r\n?/g, "\n").trim()
+    .split(/\n[ \t]*\n+/)
+    .map(par => par.replace(/[ \t]*\n[ \t]*/g, " ").replace(/[ \t]{2,}/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function showNotice(text) {
