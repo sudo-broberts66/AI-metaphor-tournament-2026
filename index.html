@@ -284,10 +284,10 @@ button.slot:focus-visible {
 }
 .round--right .slot__seed { background: var(--magenta); }
 .round--center .slot__seed { background: var(--yellow); }
-.slot__name {
+.slot__name {   /* up to 3 lines, then "…" (the full name is in the pop-up card and tooltip) */
   font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--text);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: break-word;
 }
 /* LED scoreboard cell (unlit until results are published) */
 .led {
@@ -1332,7 +1332,7 @@ function columnSpecs(br, split) {
 // Split layout needs room for every column; otherwise use scrolling columns.
 function wantsSplit(br, container) {
   const cols = columnSpecs(br, true).length;
-  const need = cols * 150 + 30 + (cols - 1) * 18 + 32;
+  const need = cols * 190 + 15 + (cols - 1) * 18 + 32;   // 190px columns, 205px center
   const box = (container && container.closest(".bracket-scroll")) || document.querySelector(".bracket-scroll");
   const avail = box && box.clientWidth ? box.clientWidth + 32 : window.innerWidth;
   return avail >= Math.max(need, 900);
@@ -1349,7 +1349,7 @@ function renderBracket(container, br) {
   specs.forEach((s, k) => container.append(renderRound(br, s, split ? Math.min(k, specs.length - 1 - k) : k)));
   container.style.maxWidth = split ? Math.min(1680, specs.length * 290) + "px" : "";
   container.style.gridTemplateColumns = split
-    ? specs.map(s => s.side === "center" ? "minmax(180px, 1.15fr)" : "minmax(150px, 1fr)").join(" ")
+    ? specs.map(s => s.side === "center" ? "minmax(205px, 1.15fr)" : "minmax(190px, 1fr)").join(" ")
     : `repeat(${specs.length}, auto)`;
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
