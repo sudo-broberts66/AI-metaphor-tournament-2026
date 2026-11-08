@@ -385,20 +385,23 @@ button.slot:focus-visible {
    Pop-up card ("character select")
    ============================================================ */
 .card-dialog {
-  width: min(760px, calc(100% - 32px)); max-height: calc(100vh - 32px);
+  width: min(760px, calc(100% - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
   padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible;
 }
 .card-dialog::backdrop { background: rgba(2, 3, 14, .78); backdrop-filter: blur(3px); }
 .card-dialog[open] .card { animation: card-in .32s cubic-bezier(.2,.9,.3,1.2) both; }
 .card {
-  position: relative; max-height: calc(100vh - 32px); overflow-y: auto;
+  position: relative; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain;
   background: linear-gradient(180deg, #121a4d, #0a0f2e 60%);
   border: 3px solid var(--cyan); border-radius: 8px;
   box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--magenta), 0 0 40px rgba(46,246,255,.35), 0 20px 60px rgba(0,0,0,.6);
   padding: 22px 22px 24px;
 }
+/* The close button rides in a zero-height sticky bar, so it stays on screen while the card scrolls. */
+.card__bar { position: sticky; top: 0; z-index: 5; height: 0; display: flex; justify-content: flex-end; }
 .card__close {
-  position: absolute; top: 10px; right: 10px; width: 40px; height: 40px;
+  position: relative; top: -12px; right: -12px; flex: none; width: 44px; height: 44px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.6);
   display: grid; place-items: center; cursor: pointer;
   font-family: var(--sans); font-size: 22px; font-weight: 700; line-height: 1; color: var(--text);
   background: var(--panel); border: 2px solid var(--line); border-radius: 4px;
@@ -437,6 +440,18 @@ button.slot:focus-visible {
 .card__section h3 { margin: 0 0 6px; font-family: var(--sans); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
 .card__section p { margin: 0; font-size: 16px; line-height: 1.6; white-space: pre-line; }
 .card__section p.is-empty { color: var(--text-muted); font-style: italic; }
+.card__foot { display: flex; justify-content: center; margin-top: 20px; }
+.card__done { min-height: 48px; padding: 12px 20px; font-size: 16px; }
+
+/* Phones (and phones held sideways): the card fills the visible screen. */
+@media (max-width: 600px), (max-height: 500px) {
+  .card-dialog { width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; inset: 0; }
+  .card {
+    height: 100%; max-height: none; border-radius: 0; border-width: 3px 0 0;
+    box-shadow: none; padding-top: 22px;
+  }
+  .card__close { top: -14px; right: -8px; }
+}
 @media (max-width: 600px) {
   .card { padding: 18px 16px 20px; }
   .card__top { grid-template-columns: 76px 1fr; gap: 14px; }
@@ -940,7 +955,7 @@ button.slot:focus-visible {
 <!-- Metaphor pop-up card -->
 <dialog class="card-dialog" id="card-dialog" aria-labelledby="card-title">
   <div class="card">
-    <button type="button" class="card__close" id="card-close" aria-label="Close">✕</button>
+    <div class="card__bar"><button type="button" class="card__close" id="card-close" aria-label="Close">✕</button></div>
     <div class="card__top">
       <div class="card__portrait">
         <svg id="card-portrait" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"></svg>
@@ -960,6 +975,7 @@ button.slot:focus-visible {
       <section class="card__section"><h3>How it could confuse or mislead</h3><p id="card-confuses"></p></section>
       <section class="card__section"><h3>What it implies about the human–AI relationship</h3><p id="card-relationship"></p></section>
     </div>
+    <div class="card__foot"><button type="button" class="sk-btn sk-btn--go card__done" id="card-done">◀ Back to the bracket</button></div>
   </div>
 </dialog>
 
@@ -1718,6 +1734,8 @@ function openCard(id, opener) {
     p.classList.toggle("is-empty", !txt);
   }
 
+  document.getElementById("card-done").textContent =
+    (typeof View !== "undefined" && View.mode === "hall") ? "◀ Back to the Hall of Fame" : "◀ Back to the bracket";
   if (!dlg.open) dlg.showModal();
   document.getElementById("card-close").focus();
   dlg.querySelector(".card").scrollTop = 0;
@@ -1726,6 +1744,7 @@ function openCard(id, opener) {
 function setupCard() {
   const dlg = document.getElementById("card-dialog");
   document.getElementById("card-close").addEventListener("click", () => dlg.close());
+  document.getElementById("card-done").addEventListener("click", () => dlg.close());
   // Click on the backdrop (outside the card) closes it.
   dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
   // Keep Tab inside the dialog.
