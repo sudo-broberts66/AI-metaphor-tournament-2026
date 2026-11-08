@@ -1,14 +1,115 @@
 id,bracket,metaphor,summary,clarifies,confuses,relationship
-1,main,Metaphor 1,,,,
-2,main,Metaphor 2,,,,
-3,main,Metaphor 3,,,,
-4,main,Metaphor 4,,,,
-5,main,Metaphor 5,,,,
-6,main,Metaphor 6,,,,
-7,main,Metaphor 7,,,,
-8,main,Metaphor 8,,,,
-9,main,Metaphor 9,,,,
-10,main,Metaphor 10,,,,
+1,main,A fire,"AI is a powerful tool that has transformed our world. It can fuel progress and innovation, but if it 
+is left unchecked, it can consume the very world it was meant to improve. AI is a powerful force 
+that humanity must learn to control rather than simply fear.","This metaphor could help someone understand AI by showing that it is a powerful tool rather 
+than something that is naturally good or bad. Just like a fire can be used to cook food and 
+provide warmth, AI can help solve problems and create new ideas, though it can also generate 
+misinformation or be misused.","This metaphor might obscure or make understanding of AI unclear because fire is a natural 
+resource while AI is a man-made technology. Unlike fire, AI can make decisions, produce 
+information (whether it be correct or not), and influence how people think.","This metaphor tells people to maintain control over AI rather than becoming overly dependent 
+on it. Just as we must learn to use fire safely, we need to learn to use AI responsibly. It also 
+raises questions about what happens when AI becomes too difficult to control."
+2,main,A yes-man because it is unoriginal and forced to agree.,"Generative AI operates much like a yes-man: without original thoughts or consciousness, it 
+simply synthesizes human data to deliver responses tailored to satisfy the user.","Instead of 
+offering critical feedback, it reinforces the user's perspective with unearned confidence. 
+Because its goal is to please rather than challenge, AI often validates existing assumptions 
+instead of providing genuine insight.","However, calling AI a ""yes-man"" anthropomorphizes what 
+is ultimately just statistical data processing. ","Still, the comparison highlights a real danger: 
+uncritically accepting AI's constant agreement can foster confirmation loops, undermine critical 
+thinking, and substitute genuine feedback with automated compliance."
+3,main,A history book that you can fit in your pocket.," I compared ai to a history book because it can answer questions 
+because it has access to a huge amount of information efficiently. You can 
+ask it to explain summaries or look up information about a topic or person. I 
+said it’s a book that can fit in your pocket because we can access most ai 
+services on our phones which we carry around all the time.","Comparing ai to a history book you can fit into your pocket highlights how quickly people can access 
+information and ask questions using a phone. Like a reference book, ai can 
+explain topics, summarize information, and provide background information 
+about people or events. The metaphor also suggests that ai can be a 
+convenient starting point for learning.","A history book contains information 
+written and reviewed by people, while generative ai creates responses based
+on patterns it learned dorm data. Ai does not simply look up every answer in 
+reliable nook, and it can provide incorrect or incomplete information in a 
+confident sounding way. The metaphor may also make ai seem like it knows 
+or understands history as a person would.","This metaphor shows 
+how convenient ai can be as a learning tool, but also raises the risk that 
+people might trust its answers as much as a carefully researched book. 
+People should use ai to help explore a topic, then check important 
+information against reliable sources. Ai can support learning, but it should 
+not replace human judgment or discussion."
+4,main,A grandma trying to use TikTok,"Your grandma downloads tik tok and watches videos hours on
+end. She starts picking up on phrases and makes her own tik toks to be like
+everyone else but doesn’t understand why everyone else is doing it.","Generative AI is similar because it learns patterns from large
+amounts of information and uses those patterns to create new content, even though
+it can’t fully understand.","Grandma has a personal understanding of the real world. AI also doesn't
+automatically learn from every conversation or interaction the way Grandma
+might learn from watching more TikToks.","Imitating human behavior
+isn't the same as understanding it. People assume that AI understands human
+emotions and actions because it can act like us, but in reality it’s just AI. It
+doesn’t actually understand us."
+5,main,A chef,"Just like a chef combines ingredients to make meals, AI uses patterns from existing information
+to generate something new. Similar to how chefs use recipes and cooking techniques. Both use
+new information to create something.","This shows how AI uses patterns from existing information to generate something new, similar
+to how chefs use recipes and cooking techniques.
+","Unlike a chef, AI cannot taste its own creation to know for sure if everything it produces is
+correct.
+","AI can make tasks easier, but depending on it too much could cause people to stop developing
+their own skills and creativity.
+"
+6,main,A dictionary that you don’t have to turn the pages for.,"AI is like a dictionary because you can ask it a question, or for this example a word 
+and its definition. Except AI gives you the answer immediately, and a dictionary you must 
+shuffle through pages.","This could help someone understand Generative AI because they have a 
+familiar inanimate object to relate it to. Most people know what a dictionary is, and the 
+concept of searching for information is very similar.","My explanation might make AI unclear because people could think AI just finds definitions of
+words.","My metaphor highlights a problem of humans 
+doing less work to find an answer and relying on technology."
+7,main,Like spoon-feeding a baby without the reduced risk of choking,"The term ""spoon-feeding"" literally refers to feeding babies with a spoon, allowing someone 
+else to control their nutrition while reducing the risk of choking. Figuratively, however, it 
+means providing someone with so much assistance, information, or answers that they no 
+longer need to think for themselves. AI offers access to seemingly endless information, but 
+what benefit is a library containing every book in the world if one lacks the ability to 
+understand them?","Generative AI is like spoon-feeding because it provides people with convenient access to 
+information and answers without requiring them to do all the intellectual work themselves. 
+It shows how AI can make knowledge more accessible while showing that receiving 
+information is not the same as understanding it.","The metaphor may make AI seem like an information delivery system like google rather 
+than a technology that generates responses by recognizing patterns learned from training 
+data. ","The metaphor highlights the danger of humans becoming intellectually dependent on AI 
+and gradually neglecting their own critical thinking and reasoning. Rather than replacing 
+human thought, AI should serve as a tool that strengthens it, but most people will probably 
+fall into letting it replace their critical thinking under the idea of “efficiency.” "
+8,main,Like Ouroboros,"It has infinite knowledge, yet no knowledge, and must act accordingly. When it’s hungry and has nothing to eat, it starts eating itself. AI cannot exist
+without humans.","People who have no awareness of Ouroboros have no idea what the infinite 
+cycle represents would think it’s a stalemate, but they fail to acknowledge 
+the constant creation from AI and the constant destruction from said AI. It 
+can create images, but never to the perfect degree, so it destroys them in 
+smaller details.","People who have no idea about AI fundamentally will be able to see the 
+metaphor and think, “It’s an infinite cycle?” Yes. AI, while it has 
+hyperintelligence, is stuck with a limit: it can’t use its intelligence, but you 
+never know how smart AI is before you ask it a question. It’s Schrödinger’s 
+System. My metaphor is very simple but helps build an idea of an infinite 
+loop.","While it does constantly create, it also must come at the cost of destruction. 
+Those images generated all come from exuberant amounts of water and 
+therefore make them a weapon against the environment itself. However, it 
+also cannot improve on what it’s made of. AI is technically selfish in that 
+regard, but it still creates."
+9,main,A library,"A library gives many options to all kinds of different books and information. Ai is similar 
+because it gives many people or students information. A library and Ai both give people many 
+new open learning opportunities.","My metaphor can help clarify someone's understanding of generative Ai because it compares it 
+to a library, which is something everyone is familiar with. A library provides mostly everything 
+people are looking for, just like generative AI gives answers and information people are looking 
+for.","My metaphor may make the understanding of AI unclear because AI does not always give 
+correct or accurate answers, while a library has facts and research books that do. Another way it 
+can be misleading or unclear is because a library always uses sources, while AI does not provide 
+sources of where the answers came from.","While the metaphor does make sense, it is important that humans understand to not rely on AI 
+like they would rely on a library. It would be good for people to check sources before fully 
+relying on AI."
+10,main,Like having a teaching assistant in the classroom. ,"AI is like having a teaching assistant in the classroom because it works alongside you and 
+responds to the instructions you give it. Just like a teaching assistant uses the information the 
+teacher provides and what they have been trained on to help in the classroom, AI uses the 
+information you provide and the information it has been trained on to help you.","My metaphor helps people understand that AI works by using the information it has been trained 
+on and the instructions and information people provide it to generate a response.","My metaphor could make the understanding of AI unclear because it could make AI seem more 
+human than it actually is. AI can’t think or make its own decisions. It only gives you responses 
+based on what it has been trained on. ","My metaphor could highlight how people could become too dependent on AI and start relying on 
+it instead of thinking for themselves."
 11,main,Metaphor 11,,,,
 12,main,Metaphor 12,,,,
 13,main,Metaphor 13,,,,
