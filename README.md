@@ -2,9 +2,16 @@
 
 *March Madness Meets Academic Analogies*
 
-A single-page bracket site for a class final project. Students' metaphors for AI compete in a
+Interactive website for tracking the final project for XIDS2002: Your Brain and AI during the Fall 2026 semester at the University of West Georgia. As the final project for the course,
+students are challenged with picking and explaining a metaphor that could be used to help someone else understand Generative AI.
+
+A single-page bracket site for updating and following the class final project. Students' metaphors for AI compete in a
 single-elimination bracket. Votes are cast on paper each class; the instructor types the totals
 into **scorekeeper mode** and publishes them live on the projector.
+
+The site and paper ballots are built using Claude Code, with of course a lot of planning and prompting. 
+Paper Ballots are designed by Claude Code using the Canva mcp in order to rapidly 
+design and print for voting at the beginning of each class.
 
 - Everything is in `index.html` (no build step, no backend). Data lives in `data/`.
 - Hosted on GitHub Pages.
