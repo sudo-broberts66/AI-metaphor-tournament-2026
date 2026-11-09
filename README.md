@@ -80,7 +80,8 @@ id,bracket,round,votes,tiebreak_win
 - Works for 2–32 entries (and beyond).
 - Nobody "loses": every metaphor keeps full colour and earns a neutral finish badge
   (Play-In, Round of 16, Elite 8, Final Four, Finalist, Champion, Bonus Champion).
-
+- Two brackets are managed throughout the tournament: Main and Bonus. The bonus bracket is designed for late metaphor submissions to keep voting fair.
+  
 ## Publishing on GitHub Pages
 
 Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**, pick the branch
