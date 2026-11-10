@@ -251,6 +251,8 @@ body:not(.started) .page { visibility: hidden; }
 }
 .is-columns .round { width: min(78vw, 290px); scroll-snap-align: start; }
 .is-columns .round__matches { min-height: 0; }
+.round__matches.is-tree { display: block; position: relative; }
+.round__matches.is-tree > .matchup, .round__matches.is-tree > .champ-stack { position: absolute; left: 0; right: 0; }
 
 /* Matchup card */
 .matchup {
@@ -1094,27 +1096,73 @@ function roundName(remaining) {
   }
 }
 
+// Round names come from how many metaphors are still in at the start of the round.
+function roundNameFor(remaining) {
+  if (remaining <= 2) return "Championship";
+  if (remaining <= 4) return "Final Four";
+  if (remaining <= 8) return "Elite 8";
+  return "Round of " + nextPow2(remaining);
+}
+
 /**
  * Builds the whole bracket and computes every result from the vote rows.
  * Nothing about structure is stored: it all follows from seed order + votes.
+ *
+ * Format: every round pairs up as many metaphors as possible. If a round has an odd number,
+ * exactly one gets a bye: in round 1 the top seed; later, whoever has not had a bye yet
+ * (best seed first), so nobody gets two. Pairings are best-vs-worst by seed, so with
+ * 4/8/16/32 entries this is the classic bracket (1 v 16, 8 v 9, …).
  */
 function buildBracket(entries, votes = new Map(), bracketName = "main") {
   const n = entries.length;
-  const size = nextPow2(Math.max(n, 2));
-  const numRounds = Math.log2(size);
-  const order = seedOrder(size);
-  const realFirst = n - size / 2;          // first-round games with two entries
-  const byes = size - n;                   // first-round games with one entry
-  // Mostly byes → draw only the real games as a compact Play-In.
-  const compact = numRounds > 1 && byes > realFirst;
-  const label = r => (compact && r === 0) ? "Play-In" : roundName(size >> r);
 
+  // ---- 1. Structure (fixed before any votes) ----
+  // An "item" is a spot moving into the next round: a seed, or the winner of a matchup.
+  let items = entries.map((e, k) => ({ minSeed: k + 1, byes: 0, seed: k + 1, src: null }));
+  const rounds = [];
+  while (items.length > 1) {
+    const r = rounds.length, label = roundNameFor(items.length);
+    let pool = items.slice(), byeItem = null;
+    if (pool.length % 2) {
+      byeItem = pool.slice().sort((a, b) => a.byes - b.byes || a.minSeed - b.minSeed)[0];
+      pool = pool.filter(x => x !== byeItem);
+    }
+    pool.sort((a, b) => a.minSeed - b.minSeed);
+    const ms = [];
+    for (let i = 0; i < pool.length / 2; i++) ms.push({ round: r, label, bye: false, inputs: [pool[i], pool[pool.length - 1 - i]] });
+    if (byeItem) ms.push({ round: r, label, bye: true, inputs: [byeItem] });
+    items = ms.map(m => {
+      m.feeders = m.inputs.map(x => x.src);
+      m.feeders.forEach((f, k) => { if (f) f.next = { m, k }; });
+      const best = m.inputs[0];   // inputs are best-seed first
+      return { minSeed: best.minSeed, byes: best.byes + (m.bye ? 1 : 0), src: m };
+    });
+    rounds.push(ms);
+  }
+  const last = rounds.length - 1;
+  const final = rounds[last][0];
+  final.next = null;
+
+  // ---- 2. Display order: walk the tree from the final so lines never cross ----
+  let tick = 0;
+  (function visit(m, side) {
+    m.dfs = tick++;
+    m.side = side;
+    m.feeders.forEach((f, k) => { if (f) visit(f, m === final ? (k === 0 ? "left" : "right") : side); });
+  })(final, "center");
+  rounds.forEach(ms => { ms.sort((a, b) => a.dfs - b.dfs); ms.forEach((m, i) => { m.index = i; }); });
+
+  // ---- 3. Results ----
+  const label = r => rounds[r][0].label;
   const lookup = (r, id) =>
     votes.get(`${bracketName}|${roundKey(label(r))}|${id}`) ||
     votes.get(`${bracketName}|${String(r + 1)}|${id}`) || null;
 
-  function resolve(m) {
-    if (m.bye) return;
+  rounds.forEach(ms => ms.forEach(m => {
+    Object.assign(m, { scored: false, votes: [null, null], winner: null, winnerIdx: null, tie: false, tiebreak: false });
+    const slots = m.inputs.map((x, k) => x.src ? (m.feeders[k].winner || null) : { seed: x.seed, entry: entries[x.seed - 1] });
+    m.slots = m.bye ? [slots[0], null] : slots;
+    if (m.bye) { m.winner = m.slots[0]; m.winnerIdx = 0; return; }
     const [a, b] = m.slots;
     if (!a || !b) return;
     const va = lookup(m.round, a.entry.id), vb = lookup(m.round, b.entry.id);
@@ -1130,35 +1178,9 @@ function buildBracket(entries, votes = new Map(), bracketName = "main") {
       m.tie = true;
     }
     if (w !== null) { m.winnerIdx = w; m.winner = m.slots[w]; m.tiebreak = !!m.tie; m.tie = false; }
-  }
+  }));
 
-  const rounds = [];
-  for (let r = 0; r < numRounds; r++) {
-    const cur = [];
-    const count = size >> (r + 1);
-    for (let i = 0; i < count; i++) {
-      let slots;
-      if (r === 0) {
-        slots = [order[2 * i], order[2 * i + 1]].map(seed =>
-          seed <= n ? { seed, entry: entries[seed - 1] } : null);
-      } else {
-        slots = [rounds[r - 1][2 * i].winner, rounds[r - 1][2 * i + 1].winner];
-      }
-      const m = {
-        round: r, index: i, label: label(r), slots, bye: false,
-        scored: false, votes: [null, null], winner: null, winnerIdx: null, tie: false, tiebreak: false
-      };
-      if (r === 0 && (!slots[0] || !slots[1])) {
-        m.bye = true; m.winner = slots[0] || slots[1]; m.winnerIdx = slots[0] ? 0 : 1;
-      }
-      resolve(m);
-      cur.push(m);
-    }
-    rounds.push(cur);
-  }
-
-  const last = numRounds - 1;
-  const champion = rounds[last][0].winner;
+  const champion = final.winner;
 
   // Per-entry finish badge + vote history (used by the pop-up card).
   const finishes = new Map();
@@ -1167,13 +1189,9 @@ function buildBracket(entries, votes = new Map(), bracketName = "main") {
     m.slots.forEach((s, k) => {
       if (!s) return;
       const f = finishes.get(s.entry.id);
-      if (!(compact && m.bye)) f.reached = m.label;
-      if (m.bye) {
-        if (!compact) f.history.push({ round: m.label, bye: true });
-        return;
-      }
-      const opp = m.slots[1 - k];
-      if (!opp) return;
+      f.reached = m.label;
+      if (m.bye) { f.history.push({ round: m.label, bye: true }); return; }
+      if (!m.slots[1 - k]) return;
       if (m.scored) f.history.push({ round: m.label, votes: m.votes[k], opp: m.votes[1 - k], tiebreak: m.tiebreak, advanced: m.winner ? m.winnerIdx === k : null });
       if (m.winner && m.winnerIdx !== k) {
         f.alive = false;
@@ -1189,11 +1207,11 @@ function buildBracket(entries, votes = new Map(), bracketName = "main") {
 
   // The earliest round that still has a game left to play.
   let current = null;
-  for (let r = 0; r < numRounds && !current; r++) {
+  for (let r = 0; r <= last && !current; r++) {
     if (rounds[r].some(m => !m.bye && !m.winner)) current = label(r);
   }
 
-  return { bracketName, entries, size, numRounds, rounds, count: n, compact, label, champion, finishes, current };
+  return { bracketName, entries, size: nextPow2(Math.max(n, 2)), numRounds: rounds.length, rounds, count: n, compact: false, label, champion, finishes, current };
 }
 
 /* ============================================================
@@ -1324,16 +1342,12 @@ function renderRound(br, spec, order) {
 // Which columns to draw, left to right.
 function columnSpecs(br, split) {
   const last = br.numRounds - 1;
-  const ms = (r, part) => {
-    let all = br.rounds[r];
-    if (part === "left") all = all.slice(0, all.length / 2);
-    if (part === "right") all = all.slice(all.length / 2);
-    return (br.compact && r === 0) ? all.filter(m => !m.bye) : all;
-  };
+  // Each side of the split view holds the matchups that feed that side of the final.
+  const ms = (r, part) => part === "all" ? br.rounds[r] : br.rounds[r].filter(m => m.side === part);
   const specs = [];
   const push = (r, part, side) => {
     const list = ms(r, part);
-    if (list.length) specs.push({ r, ms: list, side, playin: br.compact && r === 0 });
+    if (list.length) specs.push({ r, ms: list, side, playin: false });
   };
   if (split && last >= 1) {
     for (let r = 0; r < last; r++) push(r, "left", "left");
@@ -1403,8 +1417,52 @@ function positionPlayIns(container) {
   });
 }
 
+// Later rounds sit level with the games that feed them, so the bracket reads as a tree
+// even when a round has an odd number of games or a bye.
+function positionTree(container, br) {
+  container.querySelectorAll(".round__matches.is-tree").forEach(list => {
+    list.classList.remove("is-tree"); list.style.minHeight = "";
+    [...list.children].forEach(c => { c.style.top = ""; });
+  });
+  const card = (r, i) => container.querySelector(`.matchup[data-round="${r}"][data-index="${i}"]`);
+  for (let r = 1; r < br.numRounds; r++) {
+    const groups = new Map();
+    br.rounds[r].forEach(m => {
+      const c = card(r, m.index);
+      if (!c) return;
+      const box = c.closest(".champ-stack") || c;
+      const list = box.parentElement;
+      const centers = m.feeders.map(f => f && card(r - 1, f.index)).filter(Boolean)
+        .map(f => { const o = offsetIn(f, container); return o.y + o.h / 2; });
+      if (!centers.length) return;
+      if (!groups.has(list)) groups.set(list, []);
+      groups.get(list).push({ box, c, center: centers.reduce((a, b) => a + b, 0) / centers.length });
+    });
+    groups.forEach((arr, list) => {
+      const lo = offsetIn(list, container);
+      const tall = list.offsetHeight;
+      list.classList.add("is-tree");
+      list.style.minHeight = tall + "px";
+      // Put each card's centre level with the middle of its feeders.
+      arr.forEach(a => {
+        const inner = a.box === a.c ? 0 : a.c.offsetTop;   // the final's card sits inside the trophy stack
+        a.want = a.center - lo.y - inner - a.c.offsetHeight / 2;
+      });
+      arr.sort((a, b) => a.want - b.want);
+      let floor = 0;
+      arr.forEach(a => {
+        const top = Math.max(a.want, floor);
+        a.box.style.top = top + "px";
+        floor = top + a.box.offsetHeight + 12;
+      });
+      list.style.minHeight = Math.max(tall, floor) + "px";
+    });
+  }
+}
+
 function layoutBracket(container, br) {
   positionPlayIns(container);
+  positionTree(container, br);
   drawWires(container, br);
   if (typeof refreshTrace === "function") refreshTrace(container);
   updateRoundNav(container);
@@ -1569,8 +1627,8 @@ function drawWires(container, br) {
       const tgt = card(r, i);
       if (!tgt) return;
       const t = offsetIn(tgt, container);
-      [0, 1].forEach(k => {
-        const src = card(r - 1, 2 * i + k);
+      m.feeders.forEach((f, k) => {
+        const src = f && card(r - 1, f.index);
         if (!src) return;
         const s = offsetIn(src, container);
         const slotEl = tgt.querySelector(`[data-slot="${k}"]`) || tgt;
@@ -2244,14 +2302,21 @@ const sfx = {
 };
 
 /* ---------- Hide the newly published results, then play them back ---------- */
+// Where a winner travels: its next slot, then on through any byes, or to the champion plate.
 function revealTargets(br, container, item) {
-  const last = br.numRounds - 1;
+  const m = br.rounds[item.round][item.index];
   const card = container.querySelector(`.matchup[data-round="${item.round}"][data-index="${item.index}"]`);
-  let target = null;
-  if (item.round === last) target = container.querySelector(".champion-plate");
-  else target = container.querySelector(`.matchup[data-round="${item.round + 1}"][data-index="${item.index >> 1}"] [data-slot="${item.index & 1}"]`);
-  const wireTo = item.round === last ? "champ" : `${item.round + 1}:${item.index >> 1}:${item.index & 1}`;
-  return { card, target, wireTo, isFinal: item.round === last };
+  const steps = [];
+  let cur = m;
+  for (;;) {
+    if (!cur.next) { steps.push({ el: container.querySelector(".champion-plate"), wire: "champ" }); break; }
+    const { m: nx, k } = cur.next;
+    const box = container.querySelector(`.matchup[data-round="${nx.round}"][data-index="${nx.index}"]`);
+    steps.push({ el: box && (box.querySelector(`[data-slot="${k}"]`) || box), wire: `${nx.round}:${nx.index}:${k}` });
+    if (!nx.bye) break;
+    cur = nx;
+  }
+  return { card, steps, target: steps[0].el, wireTo: steps[0].wire, isFinal: !m.next };
 }
 
 function prepareReveal(items) {
@@ -2259,7 +2324,7 @@ function prepareReveal(items) {
     const br = bracketByName(item.bracket), container = containerFor(item.bracket);
     if (!br || !container) return;
     const m = br.rounds[item.round][item.index];
-    const { card, target, isFinal } = revealTargets(br, container, item);
+    const { card, steps, isFinal } = revealTargets(br, container, item);
     if (!card || !m.scored) return;
     card.classList.add("is-revealing");
     card.querySelectorAll("button.slot").forEach(s => {
@@ -2270,7 +2335,7 @@ function prepareReveal(items) {
       if (s.classList.contains("slot--advances")) { s.classList.remove("slot--advances"); s.dataset.winner = "1"; }
     });
     card.querySelectorAll(".advance-tag, .match-note").forEach(n => n.classList.add("is-hidden"));
-    if (m.winner && target) target.classList.add("is-awaiting");
+    if (m.winner) steps.forEach(st => { if (st.el) st.el.classList.add("is-awaiting"); });
     if (isFinal && m.winner) {
       const t = container.querySelector(".trophy");
       if (t) t.classList.remove("is-lit");
@@ -2351,7 +2416,7 @@ async function revealOne(item, token) {
   const br = bracketByName(item.bracket), container = containerFor(item.bracket);
   if (!br || !container) return;
   const m = br.rounds[item.round][item.index];
-  const { card, target, wireTo, isFinal } = revealTargets(br, container, item);
+  const { card, steps, isFinal } = revealTargets(br, container, item);
   if (!card || !m.scored) return;
   // Bring the matchup on screen (e.g. the bonus bracket below the fold, or a narrow screen).
   const rc = card.getBoundingClientRect();
@@ -2379,9 +2444,13 @@ async function revealOne(item, token) {
   await sleep(reduceMotion() ? 200 : 700);
   if (token !== Anim.token) return;
 
-  await slideTo(win, target);
-  if (token !== Anim.token) return;
-  flashWire(container, wireTo);
+  let from = win;
+  for (const st of steps) {               // next slot, then on through any byes
+    await slideTo(from, st.el);
+    if (token !== Anim.token) return;
+    flashWire(container, st.wire);
+    from = st.el;
+  }
   card.classList.remove("is-revealing");
   if (isFinal) await championMoment(br, container, token);
 }
@@ -2728,7 +2797,7 @@ async function loadData({ ignoreLocal = false } = {}) {
 }
 
 function bracketMeta(br) {
-  const shape = br.compact ? `${br.size / 2}-slot bracket + Play-In` : `${br.size}-slot bracket`;
+  const shape = `${br.numRounds} round${br.numRounds === 1 ? "" : "s"}`;
   const status = br.champion ? "Champion crowned!" : `Now playing: ${br.current}`;
   return `${br.count} metaphors · ${shape} · ${status}`;
 }

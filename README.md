@@ -74,12 +74,17 @@ id,bracket,round,votes,tiebreak_win
 
 ## Bracket rules (built in)
 
-- Size = next power of two ≥ number of entries; byes go to the top seeds; standard seeding.
-- When most first-round games would be byes (e.g. 9 entries), only the real games are drawn as a
-  compact **Play-In**.
+- Every round pairs up as many metaphors as possible. With an odd number, exactly one gets a bye:
+  the top seed in round 1; later byes go to whoever hasn't had one yet (best seed first).
+- Pairings are best seed vs. worst seed (row order in `metaphors.csv` = seeds), so with 4, 8, 16 or
+  32 entries it is the classic bracket (1 v 16, 8 v 9, …).
+- Example, 11 entries: Round of 16 = 5 matchups + 1 bye → Elite 8 = 3 matchups →
+  Final Four = 1 matchup + 1 bye → Championship.
+- Round names come from how many are still in: Round of 16 (9–16), Elite 8 (5–8),
+  Final Four (3–4), Championship (2).
 - Works for 2–32 entries (and beyond).
 - Nobody "loses": every metaphor keeps full colour and earns a neutral finish badge
-  (Play-In, Round of 16, Elite 8, Final Four, Finalist, Champion, Bonus Champion).
+  (Round of 16, Elite 8, Final Four, Finalist, Champion, Bonus Champion).
 - Two brackets are managed throughout the tournament: Main and Bonus. The bonus bracket is designed for late metaphor submissions to keep voting fair.
   
 ## Publishing on GitHub Pages
